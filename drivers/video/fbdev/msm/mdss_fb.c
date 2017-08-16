@@ -78,6 +78,9 @@
  */
 #define MDP_TIME_PERIOD_CALC_FPS_US	1000000
 
+int backlight_min = 0;
+module_param(backlight_min, int, 0644);
+
 static struct fb_info *fbi_list[MAX_FBI_LIST];
 static int fbi_list_index;
 #ifdef CONFIG_MACH_MI
@@ -325,6 +328,10 @@ static void mdss_fb_set_bl_brightness(struct led_classdev *led_cdev,
 	 */
 	MDSS_BRIGHT_TO_BL(bl_lvl, value, mfd->panel_info->bl_max,
 				mfd->panel_info->brightness_max);
+
+	// Boeffla: apply min limits for LCD backlight (0 is exception for display off)
+	if (value != 0 && value < backlight_min)
+		value = backlight_min;
 
 	if (!bl_lvl && value)
 		bl_lvl = 1;
