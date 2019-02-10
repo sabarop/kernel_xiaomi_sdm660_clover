@@ -5,6 +5,9 @@ config SND_SOC_SDM660_CDC
 config SND_SOC_TAS2557
 	tristate "Texas Instruments TAS2557 SmartAmp(R)"
 
+config SOUND_CONTROL
+	bool "Sound Control for msm89xx"
+
 if SND_SOC_TAS2557
 config TAS2557_REGMAP
 	bool "Use of RegMap API"
@@ -15,3 +18,4 @@ config TAS2557_CODEC
 config TAS2557_MISC
 	bool "Misc Driver support"
 endif # SND_SOC_TAS2557
+
