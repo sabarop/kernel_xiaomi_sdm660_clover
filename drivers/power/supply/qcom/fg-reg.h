@@ -293,7 +293,7 @@
 /* BATT_INFO_PEEK_MUX1 */
 #define PEEK_MUX1_BIT				BIT(0)
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 #define MEM_IF_MEM_ARB_CFG(chip)		((chip->mem_if_base) + 0x40)
 #define MEM_GNT_BIT				BIT(2)
 #endif
@@ -307,14 +307,14 @@
 /* FG_MEM_IF register and bit definitions */
 #define MEM_IF_INT_RT_STS(chip)			((chip->mem_if_base) + 0x10)
 #define MEM_XCP_BIT				BIT(1)
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 #define MEM_GNT_BIT				BIT(2)
 #endif
 #define GEN4_DMA_XCP_BIT			BIT(2)
 #define GEN4_MEM_GNT_BIT			BIT(3)
 #define GEN4_MEM_ATTN_BIT			BIT(4)
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 #define MEM_IF_MEM_ARB_CFG(chip)		((chip->mem_if_base) + 0x40)
 #endif
 #define MEM_CLR_LOG_BIT				BIT(2)
@@ -374,7 +374,7 @@
 #define ADDR_KIND_BIT				BIT(1)
 #define DMA_CLEAR_LOG_BIT			BIT(0)
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 /* MEM_IF_REQ */
 #define MEM_IF_ARB_REQ_BIT			BIT(0)
 #endif
