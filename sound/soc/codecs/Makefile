@@ -430,3 +430,6 @@ obj-y += sdm660_cdc/
 obj-y += msm_sdw/
 obj-$(CONFIG_SND_SOC_MAX98937) += max98937/
 obj-$(CONFIG_SND_SOC_TFA9894)	+= tfa98xx/
+
+# Tas2557
+obj-$(CONFIG_SND_SOC_TAS2557_STEREO) += tas2557/
