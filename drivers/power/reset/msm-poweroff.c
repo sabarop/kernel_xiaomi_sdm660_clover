@@ -62,7 +62,11 @@ static void scm_disable_sdi(void);
  * There is no API from TZ to re-enable the registers.
  * So the SDI cannot be re-enabled when it already by-passed.
  */
+#ifdef CONFIG_XIAOMI
+int download_mode = 0;
+#else
 static int download_mode = 1;
+#endif
 static struct kobject dload_kobj;
 
 static int in_panic;
@@ -495,6 +499,13 @@ static void msm_restart_prepare(const char *cmd)
 	else
 		qpnp_pon_system_pwr_off(PON_POWER_OFF_HARD_RESET);
 
+#ifdef CONFIG_XIAOMI
+	if (in_panic) {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_PANIC);
+		qpnp_pon_system_pwr_off(PON_POWER_OFF_WARM_RESET);
+		__raw_writel(0x77665508, restart_reason);
+	} else
+#endif
 	if (cmd != NULL) {
 		if (!strncmp(cmd, "bootloader", 10)) {
 			qpnp_pon_set_restart_reason(
@@ -508,10 +519,12 @@ static void msm_restart_prepare(const char *cmd)
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_RTC);
 			__raw_writel(0x77665503, restart_reason);
+#if 0
 		} else if (!strcmp(cmd, "dm-verity device corrupted")) {
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_DMVERITY_CORRUPTED);
 			__raw_writel(0x77665508, restart_reason);
+#endif
 		} else if (!strcmp(cmd, "dm-verity enforcing")) {
 			qpnp_pon_set_restart_reason(
 				PON_RESTART_REASON_DMVERITY_ENFORCE);
@@ -528,11 +541,25 @@ static void msm_restart_prepare(const char *cmd)
 			if (!ret)
 				__raw_writel(0x6f656d00 | (code & 0xff),
 					     restart_reason);
+#ifdef CONFIG_XIAOMI
+                } else if (!strcmp(cmd, "other")) {
+                        qpnp_pon_set_restart_reason(
+                                PON_RESTART_REASON_OTHER);
+                        __raw_writel(0x77665501, restart_reason);
+#endif
 		} else if (!strncmp(cmd, "edl", 3)) {
 			enable_emergency_dload_mode();
 		} else {
+#ifdef CONFIG_XIAOMI
+			qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+#endif
 			__raw_writel(0x77665501, restart_reason);
 		}
+#ifdef CONFIG_XIAOMI
+	} else {
+		qpnp_pon_set_restart_reason(PON_RESTART_REASON_NORMAL);
+		__raw_writel(0x77665501, restart_reason);
+#endif
 	}
 
 	flush_cache_all();
@@ -595,6 +622,10 @@ static void do_msm_poweroff(void)
 	set_dload_mode(0);
 	scm_disable_sdi();
 	qpnp_pon_system_pwr_off(PON_POWER_OFF_SHUTDOWN);
+#ifdef CONFIG_XIAOMI
+	qpnp_pon_set_restart_reason(PON_RESTART_REASON_UNKNOWN);
+	__raw_writel(0x0, restart_reason);
+#endif
 
 	halt_spmi_pmic_arbiter();
 	deassert_ps_hold();
@@ -634,6 +665,11 @@ static int msm_restart_probe(struct platform_device *pdev)
 					   "tcsr-boot-misc-detect");
 	if (mem)
 		tcsr_boot_misc_detect = mem->start;
+
+#ifdef CONFIG_XIAOMI
+	qpnp_pon_set_restart_reason(PON_RESTART_REASON_UNKNOWN);
+	__raw_writel(0x77665510, restart_reason);
+#endif
 
 	pm_power_off = do_msm_poweroff;
 	arm_pm_restart = do_msm_restart;
