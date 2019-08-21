@@ -35,6 +35,8 @@
 
 #ifdef CONFIG_MACH_ASUS_SDM660
 #define CCI_TIMEOUT msecs_to_jiffies(1000)
+#elif defined(CONFIG_MACH_XIAOMI_CLOVER)
+#define CCI_TIMEOUT msecs_to_jiffies(800)
 #else
 #define CCI_TIMEOUT msecs_to_jiffies(500)
 #endif
