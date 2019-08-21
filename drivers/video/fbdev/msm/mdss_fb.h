@@ -332,6 +332,10 @@ struct msm_fb_data_type {
 	struct task_struct *disp_thread;
 	atomic_t commits_pending;
 	atomic_t kickoff_pending;
+#ifdef CONFIG_MACH_XIAOMI_CLOVER
+	atomic_t resume_pending;
+	wait_queue_head_t resume_wait_q;
+#endif
 	wait_queue_head_t commit_wait_q;
 	wait_queue_head_t idle_wait_q;
 	wait_queue_head_t kickoff_wait_q;
@@ -366,6 +370,8 @@ struct msm_fb_data_type {
 	bool pending_switch;
 	struct mutex switch_lock;
 	struct input_handler *input_handler;
+	struct delayed_work prim_panel_work;
+	struct wakeup_source *prim_panel_wakelock;
 };
 
 static inline void mdss_fb_update_notify_update(struct msm_fb_data_type *mfd)
