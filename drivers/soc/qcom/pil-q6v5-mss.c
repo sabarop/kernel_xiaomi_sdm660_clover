@@ -199,6 +199,7 @@ static irqreturn_t modem_wdog_bite_intr_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static unsigned int base_band_sda;
 static int pil_subsys_init(struct modem_data *drv,
 					struct platform_device *pdev)
 {
@@ -220,6 +221,10 @@ static int pil_subsys_init(struct modem_data *drv,
 	if (IS_ERR(drv->subsys)) {
 		ret = PTR_ERR(drv->subsys);
 		goto err_subsys;
+	}
+
+	if (base_band_sda == 1) {
+		subsystem_set_fwname("modem", "modemnm");
 	}
 
 	drv->q6->desc.subsys_dev = drv->subsys;
@@ -471,6 +476,17 @@ static struct platform_driver pil_mss_driver = {
 		.owner = THIS_MODULE,
 	},
 };
+
+static int get_base_band_name(char *s)
+{
+	if (!strncmp(s, "sda", 3)) {
+		base_band_sda = 1;
+	}
+
+	return 1;
+}
+
+__setup("androidboot.baseband=", get_base_band_name);
 
 static int __init pil_mss_init(void)
 {
