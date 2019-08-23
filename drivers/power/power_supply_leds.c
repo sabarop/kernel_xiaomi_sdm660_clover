@@ -17,6 +17,8 @@
 
 #include "power_supply.h"
 
+int tp_flag;
+
 /* Battery specific LEDs triggers. */
 
 static void power_supply_update_bat_leds(struct power_supply *psy)
@@ -32,6 +34,7 @@ static void power_supply_update_bat_leds(struct power_supply *psy)
 
 	switch (status.intval) {
 	case POWER_SUPPLY_STATUS_FULL:
+		tp_flag = 1;
 		led_trigger_event(psy->charging_full_trig, LED_FULL);
 		led_trigger_event(psy->charging_trig, LED_OFF);
 		led_trigger_event(psy->full_trig, LED_FULL);
@@ -39,6 +42,7 @@ static void power_supply_update_bat_leds(struct power_supply *psy)
 			LED_FULL);
 		break;
 	case POWER_SUPPLY_STATUS_CHARGING:
+		tp_flag = 2;
 		led_trigger_event(psy->charging_full_trig, LED_FULL);
 		led_trigger_event(psy->charging_trig, LED_FULL);
 		led_trigger_event(psy->full_trig, LED_OFF);
@@ -46,6 +50,7 @@ static void power_supply_update_bat_leds(struct power_supply *psy)
 			&delay_on, &delay_off);
 		break;
 	default:
+		tp_flag = 0;
 		led_trigger_event(psy->charging_full_trig, LED_OFF);
 		led_trigger_event(psy->charging_trig, LED_OFF);
 		led_trigger_event(psy->full_trig, LED_OFF);
