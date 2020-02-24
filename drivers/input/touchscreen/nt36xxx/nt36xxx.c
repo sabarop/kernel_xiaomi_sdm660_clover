@@ -40,6 +40,10 @@
 #include <linux/jiffies.h>
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+#include <linux/input/tp_common.h>
+#endif
+
 #if NVT_TOUCH_ESD_PROTECT
 static struct delayed_work nvt_esd_check_work;
 static struct workqueue_struct *nvt_esd_check_wq;
@@ -88,20 +92,48 @@ const uint16_t touch_key_array[TOUCH_KEY_NUM] = {
 
 #if WAKEUP_GESTURE
 const uint16_t gesture_key_array[] = {
-	KEY_POWER,  //GESTURE_WORD_C
-	KEY_POWER,  //GESTURE_WORD_W
-	KEY_POWER,  //GESTURE_WORD_V
-	KEY_POWER,  //GESTURE_DOUBLE_CLICK
-	KEY_POWER,  //GESTURE_WORD_Z
-	KEY_POWER,  //GESTURE_WORD_M
-	KEY_POWER,  //GESTURE_WORD_O
-	KEY_POWER,  //GESTURE_WORD_e
-	KEY_POWER,  //GESTURE_WORD_S
-	KEY_POWER,  //GESTURE_SLIDE_UP
-	KEY_POWER,  //GESTURE_SLIDE_DOWN
-	KEY_POWER,  //GESTURE_SLIDE_LEFT
-	KEY_POWER,  //GESTURE_SLIDE_RIGHT
+	KEY_WAKEUP,  //GESTURE_WORD_C
+	KEY_WAKEUP,  //GESTURE_WORD_W
+	KEY_WAKEUP,  //GESTURE_WORD_V
+	KEY_WAKEUP,  //GESTURE_DOUBLE_CLICK
+	KEY_WAKEUP,  //GESTURE_WORD_Z
+	KEY_WAKEUP,  //GESTURE_WORD_M
+	KEY_WAKEUP,  //GESTURE_WORD_O
+	KEY_WAKEUP,  //GESTURE_WORD_e
+	KEY_WAKEUP,  //GESTURE_WORD_S
+	KEY_WAKEUP,  //GESTURE_SLIDE_UP
+	KEY_WAKEUP,  //GESTURE_SLIDE_DOWN
+	KEY_WAKEUP,  //GESTURE_SLIDE_LEFT
+	KEY_WAKEUP,  //GESTURE_SLIDE_RIGHT
 };
+
+bool enable_gesture_mode = false;
+
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t double_tap_show(struct kobject *kobj,
+		struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", enable_gesture_mode);
+}
+
+static ssize_t double_tap_store(struct kobject *kobj,
+		struct kobj_attribute *attr, const char *buf, size_t count)
+{
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+		return -EINVAL;
+
+	enable_gesture_mode = !!val;
+	return count;
+}
+
+static struct tp_common_ops double_tap_ops = {
+	.show = double_tap_show,
+	.store = double_tap_store
+};
+#endif
 #endif
 
 static uint8_t bTouchIsAwake = 0;
@@ -1547,6 +1579,14 @@ static int32_t nvt_ts_probe(struct i2c_client *client,
 
 	ts->id = id;
 
+#if defined(CONFIG_TOUCHSCREEN_COMMON) && WAKEUP_GESTURE
+	ret = tp_common_set_double_tap_ops(&double_tap_ops);
+	if (ret < 0) {
+		NVT_ERR("%s: Failed to create double_tap node err=%d\n",
+				__func__, ret);
+	}
+#endif
+
 #if defined(CONFIG_DRM)
 	ts->drm_notif.notifier_call = nvt_drm_notifier_callback;
 
@@ -1737,9 +1777,10 @@ static int32_t nvt_ts_suspend(struct device *dev)
 		return 0;
 	}
 
-#if !WAKEUP_GESTURE
-	nvt_irq_enable(false);
+#if WAKEUP_GESTURE
+	if (!enable_gesture_mode)
 #endif
+		nvt_irq_enable(false);
 
 #if NVT_TOUCH_ESD_PROTECT
 	NVT_LOG("cancel delayed work sync\n");
@@ -1755,26 +1796,29 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 #if WAKEUP_GESTURE
 	//---write command to enter "wakeup gesture mode"---
-	buf[0] = EVENT_MAP_HOST_CMD;
-	buf[1] = 0x13;
-	CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
+	if (enable_gesture_mode) {
+		buf[0] = EVENT_MAP_HOST_CMD;
+		buf[1] = 0x13;
+		CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
 
-	enable_irq_wake(ts->client->irq);
+		enable_irq_wake(ts->client->irq);
 
-	NVT_LOG("Enabled touch wakeup gesture\n");
-
+		NVT_LOG("Enabled touch wakeup gesture\n");
+	} else {
 #else // WAKEUP_GESTURE
-	//---write command to enter "deep sleep mode"---
-	buf[0] = EVENT_MAP_HOST_CMD;
-	buf[1] = 0x11;
-	CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
+		//---write command to enter "deep sleep mode"---
+		buf[0] = EVENT_MAP_HOST_CMD;
+		buf[1] = 0x11;
+		CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
 
-	nvt_set_page(I2C_FW_Address, 0x11a50);
-	buf[0] = 0x11a50 & 0xff;
-	buf[1] = 0x11;
-	CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
-
+		nvt_set_page(I2C_FW_Address, 0x11a50);
+		buf[0] = 0x11a50 & 0xff;
+		buf[1] = 0x11;
+		CTP_I2C_WRITE(ts->client, I2C_FW_Address, buf, 2);
 #endif // WAKEUP_GESTURE
+#if WAKEUP_GESTURE
+	}
+#endif
 
 	mutex_unlock(&ts->lock);
 
@@ -1832,9 +1876,10 @@ static int32_t nvt_ts_resume(struct device *dev)
 		nvt_check_fw_reset_state(RESET_STATE_REK);
 	}
 
-#if !WAKEUP_GESTURE
-	nvt_irq_enable(true);
+#if WAKEUP_GESTURE
+	if (!enable_gesture_mode)
 #endif
+		nvt_irq_enable(true);
 
 #if NVT_TOUCH_ESD_PROTECT
 	nvt_esd_check_enable(false);
