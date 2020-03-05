@@ -464,4 +464,20 @@ endchoice
 
 endif
 
+# Xiaomi configuration options
+
+config MACH_XIAOMI
+	bool "Xiaomi device"
+	depends on ARCH_QCOM
+	help
+	  Support for Xiaomi products
+
+menu "Xiaomi board selection"
+
+	config MACH_XIAOMI_CLOVER
+		bool "Xiaomi clover board"
+		select MACH_XIAOMI
+		help
+		  Support for XIaomi MI Pad 4 variant
+
 endmenu
