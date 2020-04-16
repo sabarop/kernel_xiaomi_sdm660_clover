@@ -277,6 +277,9 @@ ifeq ($(CONFIG_MACH_ASUS_SDM660),y)
 dtb-$(CONFIG_MACH_ASUS_X01BD) += sdm660-qrd-X01BD.dtb
 dtb-$(CONFIG_MACH_ASUS_X00TD) += sdm636-qrd-X00TD.dtb
 else
+ifeq ($(CONFIG_MACH_XIAOMI),y)
+dtb-$(CONFIG_MACH_XIAOMI_CLOVER) := sdm660-mtp-clover.dtb
+else
 dtb-$(CONFIG_ARCH_SDM660) += sdm660-sim.dtb \
 sdm660-internal-codec-cdp.dtb \
         sdm660-internal-codec-mtp.dtb \
