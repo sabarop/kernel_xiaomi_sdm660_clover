@@ -43,4 +43,10 @@ config MACH_XIAOMI_WAYNE
 	help
 	  Support for Xiaomi MI A2 and Mi 6X
 
+config MACH_XIAOMI_CLOVER
+	bool "Xiaomi clover board"
+	select MACH_XIAOMI
+	help
+	  Support for XIaomi MI Pad 4 variant
+
 endmenu
