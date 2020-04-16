@@ -75,4 +75,10 @@ menu "Xiaomi board selection"
 		help
 		  Support for qcam blobs
 
+	config MACH_XIAOMI_CLOVER
+		bool "Xiaomi clover board"
+		select MACH_XIAOMI
+		help
+		  Support for XIaomi MI Pad 4 variant
+
 endmenu
