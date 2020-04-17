@@ -9,7 +9,7 @@ menuconfig INPUT_FINGERPRINT
 if INPUT_FINGERPRINT
 
 source "drivers/xiaomi/input/fingerprint/fpc1020/Kconfig"
-
+source "drivers/xiaomi/input/fingerprint/fpc_clover/Kconfig"
 source "drivers/xiaomi/input/fingerprint/gf3208/Kconfig"
 
 endif
