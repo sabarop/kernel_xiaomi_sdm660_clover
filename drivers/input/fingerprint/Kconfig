@@ -23,3 +23,7 @@ config GOODIX_FINGERPRINT
 	default n
 	help
 	add support for goodix fingerprint driver.
+
+config FPC_FINGERPRINT_CLOVER
+	default n
+	tristate "fpc1020 fingerprint driver for clover"
