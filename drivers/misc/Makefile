@@ -78,3 +78,4 @@ obj-$(CONFIG_QTI_XR_SMRTVWR_MISC) += qxr-stdalonevwr.o
 obj-$(CONFIG_FPR_FPC)		+= fpr_FingerprintCard/
 obj-y                           += qrc/
 obj-$(CONFIG_HQ_HARDWARE_INFO) += hqhardwareinfo/
+obj-$(CONFIG_BATTERY_SAVER)	+= battery_saver.o
