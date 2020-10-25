@@ -1,0 +1,9 @@
+config XIAOMI
+	bool "Xiaomi drivers"
+	default n
+
+if XIAOMI
+
+source "drivers/xiaomi/input/Kconfig"
+
+endif
