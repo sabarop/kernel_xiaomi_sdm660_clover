@@ -1,5 +1,6 @@
 &firmware {
     android {
+        /delete-node/ vbmeta;
         fstab {
             system {
                 compatible = "android,system";
