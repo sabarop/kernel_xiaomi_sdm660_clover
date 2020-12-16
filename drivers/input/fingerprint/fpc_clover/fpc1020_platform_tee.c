@@ -559,7 +559,7 @@ static ssize_t compatible_all_set(struct device *dev,
 				rc = -EINVAL;
 				goto exit;
 			}
-			dev_info(dev, "found pin control %s\n", n);
+			dev_dbg(dev, "found pin control %s\n", n);
 			fpc1020->pinctrl_state[i] = state;
 		}
 		rc = select_pin_ctl(fpc1020, "fpc1020_vddio_active");
@@ -592,7 +592,7 @@ static ssize_t compatible_all_set(struct device *dev,
 		enable_irq_wake(gpio_to_irq(fpc1020->irq_gpio));
 		fpc1020->compatible_enabled = 1;
 		if (of_property_read_bool(dev->of_node, "fpc,enable-on-boot")) {
-			dev_info(dev, "Enabling hardware\n");
+			dev_dbg(dev, "Enabling hardware\n");
 			(void)device_prepare(fpc1020, true);
 #ifdef LINUX_CONTROL_SPI_CLK
 		(void)set_clks(fpc1020, false);
@@ -814,7 +814,7 @@ static int fpc1020_remove(struct platform_device *pdev)
 	(void)vreg_setup(fpc1020, "vdd_ana", false);
 	(void)vreg_setup(fpc1020, "vdd_io", false);
 	(void)vreg_setup(fpc1020, "vcc_spi", false);
-	dev_info(&pdev->dev, "%s\n", __func__);
+	dev_dbg(&pdev->dev, "%s\n", __func__);
 
 	return 0;
 }
