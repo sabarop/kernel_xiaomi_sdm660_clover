@@ -7,3 +7,24 @@
 	#include "batterydata-zql6019-8600mah.dtsi"
 };
 
+&thermal_zones {
+	ibat-high {
+		status = "disabled";
+	};
+	ibat-vhigh {
+		status = "disabled";
+	};
+	vbat_adc {
+		status = "disabled";
+	};
+	vbat_low {
+		status = "disabled";
+	};
+	vbat_too_low {
+		status = "disabled";
+        };
+        soc  {
+                status = "disabled";
+	};
+};
+
