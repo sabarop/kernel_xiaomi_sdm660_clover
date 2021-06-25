@@ -2270,7 +2270,7 @@ static int cpufreq_set_policy(struct cpufreq_policy *policy,
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 			CPUFREQ_INCOMPATIBLE, new_policy);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	blocking_notifier_call_chain(&cpufreq_policy_notifier_list,
 			CPUFREQ_THERMAL, new_policy);
 #endif

@@ -36,7 +36,7 @@
 
 #include <trace/events/thermal.h>
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 #define USE_LMH_DEV 0
 #endif
 
@@ -60,7 +60,7 @@
  * @timestamp: wall time of the last invocation of get_cpu_idle_time_us()
  */
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 struct freq_table {
 	u32 frequency;
 	u32 power;
@@ -100,7 +100,7 @@ struct time_in_idle {
  */
 struct cpufreq_cooling_device {
 	int id;
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	int cpu_id;
 #endif
 	u32 last_load;
@@ -109,7 +109,7 @@ struct cpufreq_cooling_device {
 	unsigned int cpufreq_floor_state;
 	unsigned int floor_freq;
 	unsigned int max_level;
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	struct freq_table *freq_table;
 #endif
 	struct em_perf_domain *em;
@@ -144,7 +144,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 	unsigned long clipped_freq = ULONG_MAX, floor_freq = 0;
 	struct cpufreq_cooling_device *cpufreq_cdev;
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	if (event != CPUFREQ_THERMAL)
 #else
 	if (event != CPUFREQ_INCOMPATIBLE)
@@ -175,7 +175,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 		 * the floor_frequency, then adjust the policy->min.
 		 */
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 		if (clipped_freq > cpufreq_cdev->clipped_freq)
 			clipped_freq = cpufreq_cdev->clipped_freq;
 #else
@@ -187,7 +187,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 		break;
 #endif
 	}
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	cpufreq_verify_within_limits(policy, floor_freq, clipped_freq);
 #endif
 	mutex_unlock(&cooling_list_lock);
@@ -195,7 +195,7 @@ static int cpufreq_thermal_notifier(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 void cpu_limits_set_level(unsigned int cpu, unsigned int max_freq)
 {
 	struct cpufreq_cooling_device *cpufreq_cdev;
@@ -463,7 +463,7 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 
 	/* Request state should be less than max_level */
 	if (WARN_ON(state > cpufreq_cdev->max_level))
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 		return cpufreq_cdev->max_level;
 #else
 		return -EINVAL;
@@ -482,7 +482,7 @@ static int cpufreq_set_cur_state(struct thermal_cooling_device *cdev,
 	 * framework.
 	 */
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	if (USE_LMH_DEV && cpufreq_cdev->plat_ops) {
 		if (cpufreq_cdev->plat_ops->ceil_limit)
 			cpufreq_cdev->plat_ops->ceil_limit(cpufreq_cdev->policy->cpu,
@@ -778,7 +778,7 @@ __cpufreq_cooling_register(struct device_node *np,
 	list_add(&cpufreq_cdev->node, &cpufreq_cdev_list);
 	mutex_unlock(&cooling_list_lock);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 	if (first)
 #else
 	if (first && !cpufreq_cdev->plat_ops)
@@ -922,7 +922,7 @@ void cpufreq_cooling_unregister(struct thermal_cooling_device *cdev)
 	mutex_unlock(&cooling_list_lock);
 
 	if (last) {
-#ifndef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 		if (!cpufreq_cdev->plat_ops)
 #endif
 			cpufreq_unregister_notifier(

@@ -56,7 +56,7 @@ struct thermal_cooling_device *
 cpufreq_platform_cooling_register(struct cpufreq_policy *policy,
 					struct cpu_cooling_ops *ops);
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 void cpu_limits_set_level(unsigned int cpu, unsigned int max_freq);
 #endif
 
