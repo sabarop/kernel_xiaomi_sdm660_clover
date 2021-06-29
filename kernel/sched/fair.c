@@ -28,7 +28,6 @@
 
 #ifdef CONFIG_SMP
 static inline bool task_fits_max(struct task_struct *p, int cpu);
-static inline unsigned long boosted_task_util(struct task_struct *task);
 #endif /* CONFIG_SMP */
 
 #ifdef CONFIG_SCHED_WALT
@@ -185,8 +184,6 @@ unsigned int sysctl_sched_min_task_util_for_boost = 51;
 /* 0.68ms default for 20ms window size scaled to 1024 */
 unsigned int sysctl_sched_min_task_util_for_colocation = 35;
 __read_mostly unsigned int sysctl_sched_prefer_spread;
-unsigned int sysctl_walt_rtg_cfs_boost_prio = 99; /* disabled by default */
-unsigned int sysctl_walt_low_latency_task_threshold; /* disabled by default */
 __read_mostly unsigned int sysctl_sched_force_lb_enable = 1;
 #endif
 unsigned int sched_small_task_threshold = 102;
@@ -4109,15 +4106,8 @@ static inline void adjust_cpus_for_packing(struct task_struct *p,
 	if (*best_idle_cpu == -1 || *target_cpu == -1)
 		return;
 
-	if (prefer_spread_on_idle(*best_idle_cpu, false))
+	if (prefer_spread_on_idle(*best_idle_cpu))
 		fbt_env->need_idle |= 2;
-
-#ifdef CONFIG_SCHED_WALT
-	if (task_rtg_high_prio(p) && walt_nr_rtg_high_prio(*target_cpu) > 0) {
-		*target_cpu = -1;
-		return;
-	}
-#endif
 
 	if (fbt_env->need_idle || task_placement_boost_enabled(p) || boosted ||
 		shallowest_idle_cstate <= 0) {
@@ -4237,19 +4227,20 @@ place_entity(struct cfs_rq *cfs_rq, struct sched_entity *se, int initial)
 			thresh >>= 1;
 
 		vruntime -= thresh;
-#ifdef CONFIG_SCHED_WALT
 		if (entity_is_task(se)) {
-			if ((per_task_boost(task_of(se)) ==
-					TASK_BOOST_STRICT_MAX) ||
-					walt_low_latency_task(task_of(se)) ||
-					task_rtg_high_prio(task_of(se))) {
+			if (per_task_boost(task_of(se)) ==
+						TASK_BOOST_STRICT_MAX)
+				vruntime -= sysctl_sched_latency;
+#ifdef CONFIG_SCHED_WALT
+			else if (unlikely(task_of(se)->low_latency)) {
 				vruntime -= sysctl_sched_latency;
 				vruntime -= thresh;
-				se->vruntime = vruntime;
+				se->vruntime = min_vruntime(vruntime,
+							se->vruntime);
 				return;
 			}
-		}
 #endif
+		}
 	}
 
 	/* ensure we never gain time by being placed backwards. */
@@ -10979,8 +10970,7 @@ static int load_balance(int this_cpu, struct rq *this_rq,
 	};
 
 	env.prefer_spread = (idle != CPU_NOT_IDLE &&
-				prefer_spread_on_idle(this_cpu,
-				idle == CPU_NEWLY_IDLE) &&
+				prefer_spread_on_idle(this_cpu) &&
 				!((sd->flags & SD_ASYM_CPUCAPACITY) &&
 				 !is_asym_cap_cpu(this_cpu)));
 
@@ -11512,8 +11502,7 @@ static void rebalance_domains(struct rq *rq, enum cpu_idle_type idle)
 		}
 		max_cost += sd->max_newidle_lb_cost;
 
-		if (!sd_overutilized(sd) && !prefer_spread_on_idle(cpu,
-					idle == CPU_NEWLY_IDLE))
+		if (!sd_overutilized(sd) && !prefer_spread_on_idle(cpu))
 			continue;
 
 		if (!(sd->flags & SD_LOAD_BALANCE))
@@ -11772,7 +11761,7 @@ static void nohz_balancer_kick(struct rq *rq)
 	 */
 	if (static_branch_likely(&sched_energy_present)) {
 		if (rq->nr_running >= 2 && (cpu_overutilized(cpu) ||
-			prefer_spread_on_idle(cpu, false)))
+			prefer_spread_on_idle(cpu)))
 			flags = NOHZ_KICK_MASK;
 		goto out;
 	}
@@ -12151,7 +12140,6 @@ static int idle_balance(struct rq *this_rq, struct rq_flags *rf)
 	u64 curr_cost = 0;
 	u64 avg_idle = this_rq->avg_idle;
 #ifdef CONFIG_SCHED_WALT
-	bool prefer_spread = prefer_spread_on_idle(this_cpu);
 	bool force_lb = (!is_min_capacity_cpu(this_cpu) &&
 				silver_has_big_tasks() &&
 				sysctl_sched_force_lb_enable &&
