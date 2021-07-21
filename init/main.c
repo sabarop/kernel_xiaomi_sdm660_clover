@@ -552,7 +552,7 @@ static void __init mm_init(void)
 	pti_init();
 }
 
-#ifdef CONFIG_MACH_LONGCHEER
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 #ifdef CONFIG_MACH_XIAOMI_TULIP
 int fts_touch = 1;
 #endif
