@@ -556,7 +556,7 @@ static void __init mm_init(void)
 	pti_init();
 }
 
-#if defined(CONFIG_FINGERPRINT_FPC1020) || defined(CONFIG_FINGERPRINT_GF3208)
+#if defined(CONFIG_FINGERPRINT_FPC1020) || defined(CONFIG_FINGERPRINT_GF3208) || defined(CONFIG_MACH_XIAOMI_CLOVER)
 int fpsensor = 1;
 #endif
 
