@@ -556,6 +556,10 @@ static void __init mm_init(void)
 	pti_init();
 }
 
+#if defined(CONFIG_FPC_FINGERPRINT_CLOVER)
+int fpsensor = 1;
+#endif
+
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
