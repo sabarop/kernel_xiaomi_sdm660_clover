@@ -556,6 +556,11 @@ static void __init mm_init(void)
 	pti_init();
 }
 
+#ifdef CONFIG_MACH_XIAOMI_CLOVER
+int fpsensor = 1;
+bool is_poweroff_charge = false;
+#endif
+
 asmlinkage __visible void __init start_kernel(void)
 {
 	char *command_line;
