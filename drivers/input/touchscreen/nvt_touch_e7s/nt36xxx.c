@@ -1031,7 +1031,7 @@ static void nvt_ts_work_func(struct work_struct *work)
 #if NVT_TOUCH_ESD_PROTECT
 	if (nvt_fw_recovery(point_data)) {
 		nvt_esd_check_enable(true);
-		goto XFER_ERROR;
+		return;
 	}
 #endif /* #if NVT_TOUCH_ESD_PROTECT */
 
