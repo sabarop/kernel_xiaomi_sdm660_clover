@@ -681,7 +681,7 @@
 		qcom,auxpcm-audio-intf;
 		qcom,ext-disp-audio-rx;
 		qcom,wcn-btfm;
-		qcom,msm-mi2s-master = <1>, <1>, <1>, <1>;
+		qcom,msm-mi2s-master = <1>, <1>, <1>, <1>, <1>;
 		qcom,audio-routing =
 			"AIF4 VI", "MCLK",
 			"RX_BIAS", "MCLK",
@@ -835,13 +835,5 @@
 		clocks = <&clock_rpmcc RPM_SMD_LN_BB_CLK2>;
 		qcom,node_has_rpm_clock;
 		#clock-cells = <1>;
-	};
-
-	wcd_rst_gpio: msm_cdc_pinctrl@64 {
-		compatible = "qcom,msm-cdc-pinctrl";
-		pinctrl-names = "aud_active", "aud_sleep";
-		pinctrl-0 = <&lpi_cdc_reset_active>;
-		pinctrl-1 = <&lpi_cdc_reset_sleep>;
-		qcom,lpi-gpios;
 	};
 };
