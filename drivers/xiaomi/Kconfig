@@ -6,4 +6,7 @@ if XIAOMI
 
 source "drivers/xiaomi/input/Kconfig"
 
+config MSM_AVTIMER
+	tristate "MSM_AVTIMER"
+
 endif
