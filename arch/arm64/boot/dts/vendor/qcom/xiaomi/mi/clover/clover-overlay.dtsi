@@ -167,6 +167,7 @@
 &pm660l_wled {
 	qcom,string-cfg = <15>;
 	qcom,en-cabc;
+	/delete-property/ qcom,auto-calibration;
 };
 &pm660l_l3 {
 	regulator-min-microvolt = <3000000>;
