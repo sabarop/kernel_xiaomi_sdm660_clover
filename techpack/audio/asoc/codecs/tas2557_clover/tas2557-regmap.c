@@ -152,40 +152,6 @@ static int tas2557_i2c_read_device(
 	return ret;
 }
 
-/*
- * tas2557_i2c_bulkread_device : read multiple bytes from device
- * platform dependent, need platform specific support
- */
-static int tas2557_i2c_bulkread_device(
-	struct tas2557_priv *pTAS2557,
-	unsigned char addr,
-	unsigned char reg,
-	unsigned char *p_value,
-	unsigned int len)
-{
-	int ret = 0;
-
-	pTAS2557->client->addr = addr;
-	ret = regmap_bulk_read(pTAS2557->mpRegmap, reg, p_value, len);
-
-	if (ret < 0) {
-		dev_err(pTAS2557->dev, "%s[0x%x] Error %d\n",
-			__func__, addr, ret);
-		if (addr == pTAS2557->mnLAddr)
-			pTAS2557->mnErrCode |= ERROR_DEVA_I2C_COMM;
-		else if (addr == pTAS2557->mnRAddr)
-			pTAS2557->mnErrCode |= ERROR_DEVB_I2C_COMM;
-	} else {
-		ret = len;
-		if (addr == pTAS2557->mnLAddr)
-			pTAS2557->mnErrCode &= ~ERROR_DEVA_I2C_COMM;
-		else if (addr == pTAS2557->mnRAddr)
-			pTAS2557->mnErrCode &= ~ERROR_DEVB_I2C_COMM;
-	}
-
-	return ret;
-}
-
 static int tas2557_i2c_update_bits(
 	struct tas2557_priv *pTAS2557,
 	unsigned char addr,
