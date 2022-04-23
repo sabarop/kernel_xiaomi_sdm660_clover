@@ -1,13 +1,13 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm64 4.19.236 Kernel Configuration
+# Linux/arm64 4.19.239 Kernel Configuration
 #
 
 #
-# Compiler: gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0
+# Compiler: gcc (Ubuntu 9.4.0-1ubuntu1~20.04.1) 9.4.0
 #
 CONFIG_CC_IS_GCC=y
-CONFIG_GCC_VERSION=90300
+CONFIG_GCC_VERSION=90400
 CONFIG_CLANG_VERSION=0
 CONFIG_LLD_VERSION=0
 CONFIG_CC_HAS_ASM_GOTO=y
@@ -4416,6 +4416,7 @@ CONFIG_ION_LEGACY=y
 # CONFIG_ION_CARVEOUT_HEAP is not set
 # CONFIG_ION_CHUNK_HEAP is not set
 # CONFIG_ION_CMA_HEAP is not set
+# CONFIG_ION_FORCE_DMA_SYNC is not set
 # CONFIG_ION_DEFER_FREE_NO_SCHED_IDLE is not set
 CONFIG_ION_POOL_AUTO_REFILL=y
 CONFIG_ION_POOL_FILL_MARK=100
@@ -4472,7 +4473,7 @@ CONFIG_USB_BAM=y
 # CONFIG_QCOM_GENI_SE is not set
 # CONFIG_IPA3_REGDUMP is not set
 CONFIG_MACH_XIAOMI=y
-CONFIG_MACH_XIAOMI_SDM660=y
+# CONFIG_MACH_XIAOMI_SDM660 is not set
 
 #
 # Xiaomi board selection
