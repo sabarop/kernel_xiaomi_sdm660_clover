@@ -6440,8 +6440,6 @@ static int select_idle_cpu(struct task_struct *p, struct sched_domain *sd, int t
 	for_each_cpu_wrap(cpu, cpus, target) {
 		if (!--nr)
 			return si_cpu;
-		if (cpu_isolated(cpu))
-			continue;
 		if (available_idle_cpu(cpu))
 			break;
 		if (si_cpu == -1 && sched_idle_cpu(cpu))
@@ -6521,16 +6519,14 @@ static inline int __select_idle_sibling(struct task_struct *p, int prev,
 	}
 
 symmetric:
-	if ((available_idle_cpu(target) || sched_idle_cpu(target)) &&
-						!cpu_isolated(target))
+	if (available_idle_cpu(target) || sched_idle_cpu(target))
 		return target;
 
 	/*
 	 * If the previous CPU is cache affine and idle, don't be stupid:
 	 */
 	if (prev != target && cpus_share_cache(prev, target) &&
-	    ((available_idle_cpu(prev) || sched_idle_cpu(prev)) &&
-						!cpu_isolated(prev)))
+	    (available_idle_cpu(prev) || sched_idle_cpu(prev)))
 		return prev;
 
 	/* Check a recently used CPU as a potential idle candidate: */
