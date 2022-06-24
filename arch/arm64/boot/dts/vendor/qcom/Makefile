@@ -12,6 +12,9 @@ dtb-$(CONFIG_ARCH_SDM660) += \
 	sdm660-mtp-jasmine.dtb \
 	sdm660-mtp-wayne.dtb
 endif
+ifeq ($(CONFIG_MACH_XIAOMI),y)
+dtb-$(CONFIG_MACH_XIAOMI_CLOVER) := sdm660-mtp-clover.dtb
+endif
 
 always		:= $(dtb-y)
 subdir-y	:= $(dts-dirs)
