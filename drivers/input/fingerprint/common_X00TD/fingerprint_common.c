@@ -71,7 +71,7 @@ exit:
 }
 #endif
 
-int commonfp_power_on(void)
+int commonfp_power_on()
 {
 	int ret = 0;
 /*#if USE_COMMON_PINCTRL
@@ -90,7 +90,7 @@ exit:
 	return ret;
 }
 
-int commonfp_power_off(void)
+int commonfp_power_off()
 {
 /*	int ret = 0;
 #if USE_COMMON_PINCTRL
