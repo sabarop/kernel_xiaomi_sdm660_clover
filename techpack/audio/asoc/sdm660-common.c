@@ -4682,6 +4682,10 @@ int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 				goto clk_off;
 			}
 		}
+		if (index == TERT_MI2S) {
+			msm_cdc_pinctrl_select_active_state(pdata->tert_mi2s_gpio_p);
+			pr_info("%s: tert_mi2s_gpio_p\n", __func__);
+		}
 		if (pdata->mi2s_gpio_p[index]) {
 			msm_cdc_pinctrl_select_active_state(
 					pdata->mi2s_gpio_p[index]);
@@ -4725,7 +4729,10 @@ void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 
 	mutex_lock(&mi2s_intf_conf[index].lock);
 	if (--mi2s_intf_conf[index].ref_cnt == 0) {
-		 if (pdata->mi2s_gpio_p[index]) {
+		if (index == TERT_MI2S) {
+			msm_cdc_pinctrl_select_sleep_state(pdata->tert_mi2s_gpio_p);
+			pr_info("%s: tert_mi2s_gpio_p\n", __func__);
+		} if (pdata->mi2s_gpio_p[index]) {
 			msm_cdc_pinctrl_select_sleep_state(
 					pdata->mi2s_gpio_p[index]);
 			pr_info("%s: mi2s_gpio_p\n", __func__);
