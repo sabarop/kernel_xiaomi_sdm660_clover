@@ -44,7 +44,7 @@
 #include "synaptics_dsx_core.h"
 /* Huaqin modify for ZQL1650-1522 by diganyun at 2018/06/06  start */
 #include <linux/seq_file.h>
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 
 #define RAWDATA_TEST_CSV_FILE "/sdcard/tpdata/RawdataTest.csv"
 #define NOISE_TEST_CSV_FILE "/sdcard/tpdata/NoiseTest.csv"

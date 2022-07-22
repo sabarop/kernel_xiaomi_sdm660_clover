@@ -58,7 +58,7 @@
 #include <linux/list.h>
 #include <linux/device.h>
 /* Huaqin modify for ZQL1650-1523 by diganyun at 2018/06/07 start */
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 #include <linux/proc_fs.h>
 /* Huaqin modify for ZQL1650-1523 by diganyun at 2018/06/07 end */
 /* Huaqin add by diganyun for ITO test 2018/05/23 end */

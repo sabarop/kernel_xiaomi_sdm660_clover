@@ -561,7 +561,7 @@ static void himax_ts_isr_func(struct himax_ts_data *ts)
 	disable_irq_nosync(irqnum);
 #ifdef HX_SMART_WAKEUP
 	if(ts->suspended) {
-		__pm_wakeup_event(ts->ts_SMWP_wake_lock, msecs_to_jiffies(5000));
+		wake_lock_timeout(&ts->ts_SMWP_wake_lock, msecs_to_jiffies(5000));
 	}
 #endif
 //Huaqin add for ESD test bu xudongfang at 2018/11/05 start

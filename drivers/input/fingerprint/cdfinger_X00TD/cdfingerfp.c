@@ -16,11 +16,11 @@
 #include <linux/io.h>
 #include <linux/spinlock.h>
 #include <linux/sched.h>
-#include <linux/pm_wakeup.h>
+#include <linux/wakelock.h>
 #include <linux/kthread.h>
 #include <linux/cdev.h>
 #include <linux/fs.h>
-#include <linux/uaccess.h>
+#include <asm/uaccess.h>
 #include <linux/spi/spidev.h>
 #include <linux/semaphore.h>
 #include <linux/poll.h>
@@ -132,7 +132,7 @@ struct cdfingerfp_data {
 	u32 reset_num;
 	u32 pwr_num;
 	struct fasync_struct *async_queue;
-	struct wakeup_source *cdfinger_lock;
+	struct wake_lock cdfinger_lock;
 	struct input_dev* cdfinger_input;
 	struct notifier_block notifier;
 	struct mutex buf_lock;
@@ -385,14 +385,14 @@ static void cdfinger_wake_lock(struct cdfingerfp_data *pdata,int arg)
 	if(arg)
 	{
 		if(wake_flag == 0){
-			__pm_stay_awake(pdata->cdfinger_lock);
+			wake_lock(&pdata->cdfinger_lock);
 			wake_flag = 1;
 		}
 	}
 	else
 	{
 		if(wake_flag == 1){
-			__pm_relax(pdata->cdfinger_lock);
+			wake_unlock(&pdata->cdfinger_lock);
 			wake_flag = 0;
 		}
 	}
@@ -671,24 +671,24 @@ static int cdfinger_probe(struct platform_device *pdev)
 	status = misc_register(&st_cdfinger_dev);
 	if (status) {
 		CDFINGER_DBG("cdfinger misc register err%d\n",status);
-		return -1;
+		return -1;	
 	}
 
 	cdfingerdev = kzalloc(sizeof(struct cdfingerfp_data),GFP_KERNEL);
 	cdfingerdev->miscdev = &st_cdfinger_dev;
 	cdfingerdev->cdfinger_dev = pdev;
 	mutex_init(&cdfingerdev->buf_lock);
-	cdfingerdev->cdfinger_lock = wakeup_source_register(NULL, "cdfinger wakelock");
+	wake_lock_init(&cdfingerdev->cdfinger_lock, WAKE_LOCK_SUSPEND, "cdfinger wakelock");
 	status=cdfinger_parse_dts(&cdfingerdev->cdfinger_dev->dev, cdfingerdev);
 	if (status != 0) {
 		CDFINGER_DBG("cdfinger parse err %d\n",status);
-		goto unregister_dev;
+		goto unregister_dev;	
 	}
-
+	
 	cdfingerdev->cdfinger_input = input_allocate_device();
 	if(!cdfingerdev->cdfinger_input){
 		CDFINGER_ERR("crate cdfinger_input faile!\n");
-		goto unregister_dev;
+		goto unregister_dev;	
 	}
 	for (i = 0; i < ARRAY_SIZE(maps); i++)
 		input_set_capability(cdfingerdev->cdfinger_input, maps[i].type, maps[i].code);
@@ -706,7 +706,7 @@ static int cdfinger_probe(struct platform_device *pdev)
 		return -EFAULT;
 	INIT_WORK(&fp_boost_work, do_fp_boost);
 	INIT_DELAYED_WORK(&fp_boost_rem, do_fp_boost_rem);
-
+	
 	cdfingerdev->notifier.notifier_call = cdfinger_fb_notifier_callback;
     	fb_register_client(&cdfingerdev->notifier);
 	//cdfinger_power_on(cdfingerdev);
