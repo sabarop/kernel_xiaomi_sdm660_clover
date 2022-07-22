@@ -23,7 +23,7 @@
 
 #ifdef CONFIG_MACH_ASUS_SDM660
 #include <linux/of_gpio.h>
-#include <linux/pm_wakeup.h>
+#include <linux/wakelock.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
 #include <asm-generic/errno-base.h>
@@ -194,7 +194,7 @@ struct smb_charger *smbchg_dev;
 /* Huaqin add for ZQL1650-68 systme suspend 1 min run sw jeita by fangaijun at 2018/02/06 start */
 struct timespec last_jeita_time;
 /* Huaqin add for ZQL1650-68 systme suspend 1 min run sw jeita by fangaijun at 2018/02/06 end */
-struct wakeup_source *asus_chg_lock;
+struct wake_lock asus_chg_lock;
 int BR_countrycode =0;
 /* Huaqin add for ZQL1650-68 Realize jeita function by fangaijun at 2018/02/03 end */
 /* Huaqin add for ZQL1650-26 by diganyun at 2018/02/06 start */
@@ -2946,7 +2946,7 @@ static int smb2_probe(struct platform_device *pdev)
 	
 #ifdef CONFIG_MACH_ASUS_SDM660
 /* Huaqin add for ZQL1650-68 Realize jeita function by fangaijun at 2018/02/03 start */
-	asus_chg_lock = wakeup_source_register(NULL, "asus_chg_lock");
+	wake_lock_init(&asus_chg_lock, WAKE_LOCK_SUSPEND, "asus_chg_lock");
 	smbchg_dev = chg;			//ASUS BSP add globe device struct +++
 /* Huaqin add for ZQL1650-68 Realize jeita function by fangaijun at 2018/02/03 end */
 /* Huaqin modify for ZQL1650-70 Identify Adapter ID by fangaijun at 2018/02/8 start */

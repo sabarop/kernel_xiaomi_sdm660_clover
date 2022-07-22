@@ -1613,7 +1613,7 @@ qpnp_config_reset_reg(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
 				QPNP_PON_S2_CNTL_EN, 0);
 	if (rc) {
-		dev_err(pon->dev, "%s : Unable to configure S2 enable\n", __func__);
+		dev_err(&pon->pdev->dev, "%s : Unable to configure S2 enable\n", __func__);
 		return rc;
 	}
 
@@ -1625,7 +1625,7 @@ qpnp_config_reset_reg(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 	rc = qpnp_pon_masked_write(pon, s1_timer_addr,
 				QPNP_PON_S1_TIMER_MASK, i);
 	if (rc) {
-		dev_err(pon->dev, "%s : Unable to configure S1 timer\n", __func__);
+		dev_err(&pon->pdev->dev, "%s : Unable to configure S1 timer\n", __func__);
 		return rc;
 	}
 
@@ -1638,14 +1638,14 @@ qpnp_config_reset_reg(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 	rc = qpnp_pon_masked_write(pon, s2_timer_addr,
 				QPNP_PON_S2_TIMER_MASK, i);
 	if (rc) {
-		dev_err(pon->dev, "%s : Unable to configure S2 timer\n", __func__);
+		dev_err(&pon->pdev->dev, "%s : Unable to configure S2 timer\n", __func__);
 		return rc;
 	}
 
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl_addr,
 				QPNP_PON_S2_CNTL_TYPE_MASK, (u8)cfg->s2_type);
 	if (rc) {
-		dev_err(pon->dev, "%s : Unable to configure S2 reset type\n", __func__);
+		dev_err(&pon->pdev->dev, "%s : Unable to configure S2 reset type\n", __func__);
 		return rc;
 	}
 
@@ -1653,14 +1653,14 @@ qpnp_config_reset_reg(struct qpnp_pon *pon, struct qpnp_pon_config *cfg)
 	rc = qpnp_pon_masked_write(pon, cfg->s2_cntl2_addr,
 				QPNP_PON_S2_CNTL_EN, QPNP_PON_S2_CNTL_EN);
 	if (rc) {
-		dev_err(pon->dev, "%s : Unable to configure S2 enable\n", __func__);
+		dev_err(&pon->pdev->dev, "%s : Unable to configure S2 enable\n", __func__);
 		return rc;
 	}
 
 	return 0;
 }
 
-static void timer_func(struct timer_list *t){
+static void timer_func(unsigned long data){
     pr_err("%s reset qpnp config reg...\n",__func__);
     timer_data.cfg->s1_timer = 4480;
     timer_data.cfg->s2_timer = 2000;
@@ -1671,7 +1671,9 @@ static void timer_func(struct timer_list *t){
 static void start_timer(struct qpnp_pon *pon,  struct qpnp_pon_config *cfg){
     timer_data.pon = pon;
     timer_data.cfg = cfg;
-    timer_setup(&tm, timer_func, 0);
+    setup_timer(&tm, timer_func, 0);
+    init_timer(&tm);
+    tm.data = 0;
     tm.expires = jiffies + 60 * HZ;
     tm.function = timer_func;
     add_timer(&tm);

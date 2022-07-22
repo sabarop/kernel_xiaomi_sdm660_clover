@@ -26,6 +26,7 @@
 #include <linux/rtc.h>
 #include <linux/switch.h>
 #endif
+
 #define FG_GEN3_DEV_NAME	"qcom,fg-gen3"
 
 #define PERPH_SUBTYPE_REG		0x05
@@ -222,7 +223,7 @@ static struct BAT_HEALTH_DATA_BACKUP g_bat_health_data_backup[BAT_HEALTH_NUMBER_
 struct delayed_work battery_health_work;
 struct delayed_work battery_metadata_work;
 
-struct fg_dev *g_fg = NULL;
+struct fg_chip *g_fg = NULL;
 
 #define pr_fmt(fmt)	"FG: %s: " fmt, __func__
 #define BAT_TAG "[BAT][BMS]"
@@ -946,7 +947,7 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 	}
 
 #ifdef CONFIG_MACH_ASUS_SDM660
-	strcpy(battery_name.battery_name_type,fg->bp.batt_type_str);
+	strcpy(battery_name.battery_name_type,chip->bp.batt_type_str);
 	battery_switch_register();
 #endif
 
@@ -967,7 +968,7 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 	rc = of_property_read_u32(profile_node, "qcom,fg-cc-cv-threshold-mv",
 			&fg->bp.vbatt_full_mv);
 #ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_get_batt_profile fg->bp.vbatt_full_mv=%d\n",fg->bp.vbatt_full_mv);
+	printk("enter fg_get_batt_profile chip->bp.vbatt_full_mv=%d\n",chip->bp.vbatt_full_mv);
 #endif
 	if (rc < 0) {
 		pr_err("battery cc_cv threshold unavailable, rc:%d\n", rc);
@@ -1695,7 +1696,7 @@ static int fg_charge_full_update(struct fg_dev *fg)
 				msoc);
 		}
 #ifdef CONFIG_MACH_ASUS_SDM660
-	} else if ((msoc_raw <= recharge_soc || !fg->charge_done) && fg->charge_full) {
+	} else if ((msoc_raw <= recharge_soc || !chip->charge_done) && chip->charge_full) {
 		printk("enter fg_charge_full_update1\n");
 #else
 	} else if ((msoc_raw <= recharge_soc || !fg->charge_done)
@@ -2776,7 +2777,7 @@ static void status_change_work(struct work_struct *work)
 
 	fg->charge_done = prop.intval;
 #ifdef CONFIG_MACH_ASUS_SDM660
-	printk("status_change_work fg->charge_done=%d\n",fg->charge_done);
+	printk("status_change_work chip->charge_done=%d\n",chip->charge_done);
 #endif
 	fg_cycle_counter_update(fg);
 	fg_cap_learning_update(fg);
@@ -4964,9 +4965,9 @@ static int file_op(const char *filename, loff_t offset, char *buf, int length, i
 	set_fs(KERNEL_DS);
 
 	if(FILE_OP_READ == operation)
-		filep= ksys_open(filename, O_RDONLY | O_CREAT | O_SYNC, 0666);
+		filep= sys_open(filename, O_RDONLY | O_CREAT | O_SYNC, 0666);
 	else if(FILE_OP_WRITE == operation)
-		filep= ksys_open(filename, O_RDWR | O_CREAT | O_SYNC, 0666);
+		filep= sys_open(filename, O_RDWR | O_CREAT | O_SYNC, 0666);
 	else {
 		pr_err("Unknown partition op err!\n");
 		return -1;
@@ -4976,19 +4977,17 @@ static int file_op(const char *filename, loff_t offset, char *buf, int length, i
 		return -1;
 	}
    else
-        //fg_dbg(g_fg, FG_STATUS, "open %s success!\n", filename);
-	pr_info("open %s successn", filename);
+        fg_dbg(g_fg, FG_STATUS, "open %s success!\n", filename);
 
-	ksys_lseek(filep, offset, SEEK_SET);
+	sys_lseek(filep, offset, SEEK_SET);
 	if(FILE_OP_READ == operation)
-		ksys_read(filep, buf, length);
+		sys_read(filep, buf, length);
 	else if(FILE_OP_WRITE == operation) {
-		ksys_write(filep, buf, length);
-		//sys_fsync(filep);
-		ksys_sync();
+		sys_write(filep, buf, length);
+		sys_fsync(filep);
 	}
 	set_fs(old_fs);
-	ksys_close(filep);
+	sys_close(filep);
 	return length;
 }
 
@@ -5111,13 +5110,13 @@ int batt_health_csc_backup(void){
 	return rc;
 }
 
-static void fg_get_online_status(struct fg_dev *fg){
+static void fg_get_online_status(struct fg_chip *chip){
 	int rc;
 	union power_supply_propval prop = {0, };
 	int online = 0;
 
-	if (usb_psy_initialized(fg)) {
-		rc = power_supply_get_property(fg->usb_psy,
+	if (usb_psy_initialized(chip)) {
+		rc = power_supply_get_property(chip->usb_psy,
 			POWER_SUPPLY_PROP_ONLINE, &prop);
 		if (rc < 0) {
 			pr_err("Couldn't read usb ONLINE prop rc=%d\n", rc);
@@ -5127,8 +5126,8 @@ static void fg_get_online_status(struct fg_dev *fg){
 		online = online || prop.intval;
 	}
 
-	if (pc_port_psy_initialized(fg)) {
-		rc = power_supply_get_property(fg->pc_port_psy,
+	if (pc_port_psy_initialized(chip)) {
+		rc = power_supply_get_property(chip->pc_port_psy,
 			POWER_SUPPLY_PROP_ONLINE, &prop);
 		if (rc < 0) {
 			pr_err("Couldn't read pc_port ONLINE prop rc=%d\n", rc);
@@ -5138,8 +5137,8 @@ static void fg_get_online_status(struct fg_dev *fg){
 		online = online || prop.intval;
 	}
 
-	if (dc_psy_initialized(fg)) {
-		rc = power_supply_get_property(fg->dc_psy,
+	if (dc_psy_initialized(chip)) {
+		rc = power_supply_get_property(chip->dc_psy,
 			POWER_SUPPLY_PROP_ONLINE, &prop);
 		if (rc < 0) {
 			pr_err("Couldn't read dc ONLINE prop rc=%d\n", rc);
@@ -5148,12 +5147,12 @@ static void fg_get_online_status(struct fg_dev *fg){
 
 		online = online || prop.intval;
 	}
-	fg->online_status = online;
+	chip->online_status = online;
 }
 
 extern unsigned long asus_qpnp_rtc_read_time(void);
 
-static void update_battery_health(struct fg_dev *fg){
+static void update_battery_health(struct fg_chip *chip){
 	int bat_capacity, bat_current, delta_p;
 	unsigned long T;
 	int health_t;
@@ -5167,15 +5166,15 @@ static void update_battery_health(struct fg_dev *fg){
 		return;
 	}
 
-	fg_get_online_status(fg);
-	if(!fg->online_status){
+	fg_get_online_status(chip);
+	if(!chip->online_status){
 		if(g_last_bathealth_trigger == true){
 			battery_health_data_reset();
 		}
 		return;
 	}
 
-	fg_get_prop_capacity(fg, &bat_capacity);
+	fg_get_prop_capacity(chip, &bat_capacity);
 
 	if(bat_capacity == g_health_upgrade_start_level && g_bat_health_data.start_time == 0){
 		g_bathealth_trigger = true;
@@ -5192,7 +5191,7 @@ static void update_battery_health(struct fg_dev *fg){
 		//if(g_screen_on == true){
 		//	return;
 		//}
-		fg_get_battery_current(fg, &bat_current);
+		fg_get_battery_current(chip, &bat_current);
 
 		g_bat_health_data.accumulate_time += g_health_upgrade_upgrade_time;
 		g_bat_health_data.bat_current = -bat_current;
@@ -5921,7 +5920,7 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&chip->ttf_work, ttf_work);
 	INIT_DELAYED_WORK(&fg->sram_dump_work, sram_dump_work);
 #ifdef CONFIG_MACH_ASUS_SDM660
-	g_fg = fg;
+	g_fg = chip;
 	INIT_DELAYED_WORK(&battery_health_work, battery_health_worker); //battery_health_work
 	battery_health_data_reset();
 	schedule_delayed_work(&battery_health_work, 30 * HZ); //battery_health_work
@@ -6109,14 +6108,14 @@ static void fg_gen3_shutdown(struct platform_device *pdev)
 #ifdef CONFIG_MACH_ASUS_SDM660
 	u8 mask;
 	u8 status;
-	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
+	rc = fg_read(chip, BATT_INFO_BATT_MISS_CFG(chip), &status, 1);
 	printk("fg_gen3_shutdown status0=%d\n",status);
-	rc = fg_masked_write(fg, BATT_INFO_BATT_MISS_CFG(fg),
+	rc = fg_masked_write(chip, BATT_INFO_BATT_MISS_CFG(chip),
 			BM_FROM_BATT_ID_BIT, 0);
 	if (rc < 0)
 		pr_err("Error in writing to %04x, rc=%d\n",
-			BATT_INFO_BATT_MISS_CFG(fg), rc);
-	rc = fg_read(fg, BATT_INFO_BATT_MISS_CFG(fg), &status, 1);
+			BATT_INFO_BATT_MISS_CFG(chip), rc);
+	rc = fg_read(chip, BATT_INFO_BATT_MISS_CFG(chip), &status, 1);
 	printk("fg_gen3_shutdown status1=%d\n",status);
 #endif
 

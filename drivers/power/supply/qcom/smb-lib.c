@@ -29,7 +29,7 @@
 #include <linux/fs.h>
 /* Huaqin add for ZQL1650-26 by diganyun at 2018/02/06 end */
 #include <linux/alarmtimer.h>
-#include <linux/pm_wakeup.h>
+#include <linux/wakelock.h>
 #include <linux/unistd.h>
 #include <linux/fcntl.h>
 #include <linux/slab.h>
@@ -133,16 +133,16 @@ static void asus_smblib_rerun_aicl(struct smb_charger *chg)
 	smblib_masked_write(chg, USBIN_AICL_OPTIONS_CFG_REG,                          //reg=1380   bit2=0     USBIN_AICL_EN=Enable
 			USBIN_AICL_EN_BIT, USBIN_AICL_EN_BIT);
 }
-extern struct wakeup_source *asus_chg_lock;
+extern struct wake_lock asus_chg_lock;
 void asus_smblib_stay_awake(struct smb_charger *chg)
 {
 	printk("%s: ASUS set smblib_stay_awake\n", __func__);
-	__pm_stay_awake(asus_chg_lock);
+	wake_lock(&asus_chg_lock);
 }
 void asus_smblib_relax(struct smb_charger *chg)
 {
 	printk("%s: ASUS set smblib_relax\n", __func__);
-	__pm_relax(asus_chg_lock);
+	wake_unlock(&asus_chg_lock);
 }
 /* Huaqin add for ZQL1650-68 Realize jeita function by fangaijun at 2018/02/03 end */
 #endif /* CONFIG_MACH_ASUS_SDM660 */
