@@ -16,6 +16,7 @@
 #include <linux/err.h>
 #include <linux/io.h>
 #include <linux/spinlock.h>
+#include <linux/sched.h>
 #include <linux/pm_wakeup.h>
 #include <linux/kthread.h>
 #include <linux/cdev.h>
@@ -40,6 +41,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/fb.h>
 #include <linux/notifier.h>
+#include <linux/sched.h>
 
 typedef struct key_report {
 	int key;
@@ -118,6 +120,15 @@ static char wake_flag = 0;
 	}while(0)
 
 /* Huaqin modify for TT1244651 by puqirui at 2018/10/11 start */
+#define FP_BOOST_MS   500
+#define FP_BOOST_INTERVAL   (500*USEC_PER_MSEC)
+
+static struct workqueue_struct *fp_boost_wq;
+
+static struct work_struct fp_boost_work;
+static struct delayed_work fp_boost_rem;
+static bool fp_boost_active=false;
+
 struct cdfingerfp_data {
 	struct platform_device *cdfinger_dev;
 	struct miscdevice *miscdev;
@@ -158,6 +169,52 @@ static struct cdfinger_key_map maps[] = {
 	{ EV_KEY, CF_NAV_INPUT_DOUBLE_CLICK },
 	{ EV_KEY, CF_NAV_INPUT_LONG_PRESS },
 };
+
+static void do_fp_boost_rem(struct work_struct *work)
+{
+	unsigned int ret;
+
+	/* Update policies for all online CPUs */
+	if(fp_boost_active) {
+		ret = sched_set_boost(0);
+		if (ret)
+			pr_err("cpu-boost: HMP boost disable failed\n");
+		fp_boost_active = false;
+	}
+}
+
+static void do_fp_boost(struct work_struct *work)
+{
+	unsigned int ret;
+
+	cancel_delayed_work_sync(&fp_boost_rem);
+	if(fp_boost_active==false) {
+		ret = sched_set_boost(1);
+		if (ret)
+			pr_err("cpu-boost: HMP boost enable failed\n");
+		else
+			fp_boost_active=true;
+	}
+	queue_delayed_work(fp_boost_wq, &fp_boost_rem,
+					msecs_to_jiffies(FP_BOOST_MS));
+}
+
+
+static void fp_cpuboost(void)
+{
+	u64 now;
+	static u64 last_time=0;
+
+	now = ktime_to_us(ktime_get());
+	if (now - last_time <FP_BOOST_INTERVAL)
+		return;
+
+	if (work_pending(&fp_boost_work))
+		return;
+
+	queue_work(fp_boost_wq, &fp_boost_work);
+	last_time = ktime_to_us(ktime_get());
+}
 
 static int cdfinger_init_gpio(struct cdfingerfp_data *cdfinger)
 {
@@ -393,6 +450,7 @@ static irqreturn_t cdfinger_eint_handler(int irq, void *dev_id)
 	struct cdfingerfp_data *pdata = g_cdfingerfp_data;
 	if (pdata->irq_enable_status == 1)
 	{
+		fp_cpuboost();
 		cdfinger_wake_lock(pdata,1);
 		cdfinger_async_report();
 	}
@@ -725,8 +783,14 @@ static int cdfinger_probe(struct platform_device *pdev)
 	  goto unregister_dev;
 	}
 
+	fp_boost_wq = alloc_workqueue("fp_cpuboost_wq", WQ_HIGHPRI, 0);
+	if (!fp_boost_wq)
+		return -EFAULT;
+	INIT_WORK(&fp_boost_work, do_fp_boost);
+	INIT_DELAYED_WORK(&fp_boost_rem, do_fp_boost_rem);
+
 	cdfingerdev->notifier.notifier_call = cdfinger_fb_notifier_callback;
-	fb_register_client(&cdfingerdev->notifier);
+    fb_register_client(&cdfingerdev->notifier);
 
 	g_cdfingerfp_data = cdfingerdev;
 
