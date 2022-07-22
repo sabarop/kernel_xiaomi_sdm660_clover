@@ -18,15 +18,6 @@
 #include "fg-core.h"
 #include "fg-reg.h"
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-#include <linux/proc_fs.h>
-#include <linux/mm.h>
-#include <linux/syscalls.h>
-#include <linux/reboot.h>
-#include <linux/rtc.h>
-#include <linux/switch.h>
-#endif
-
 #define FG_GEN3_DEV_NAME	"qcom,fg-gen3"
 
 #define PERPH_SUBTYPE_REG		0x05
@@ -155,82 +146,6 @@
 #define RECHARGE_VBATT_THR_v2_OFFSET	1
 #define FLOAT_VOLT_v2_WORD		16
 #define FLOAT_VOLT_v2_OFFSET		2
-
-#ifdef CONFIG_MACH_ASUS_SDM660
-#define CYCLE_COUNT_DATA_MAGIC  0x85
-#define CYCLE_COUNT_FILE_NAME   "/batinfo/.bs"
-#define BAT_PERCENT_FILE_NAME   "/batinfo/Batpercentage"
-#define BAT_SAFETY_FILE_NAME   "/batinfo/bat_safety"
-#define CYCLE_COUNT_SD_FILE_NAME   "/sdcard/.bs"
-#define BAT_PERCENT_SD_FILE_NAME   "/sdcard/Batpercentage"
-#define BAT_CYCLE_SD_FILE_NAME   "/sdcard/Batcyclecount"
-#define CYCLE_COUNT_DATA_OFFSET  0x0
-#define FILE_OP_READ   0
-#define FILE_OP_WRITE   1
-
-#define	BATTERY_HEALTH_UPGRADE_TIME 1 //ASUS_BS battery health upgrade
-#define	BATTERY_METADATA_UPGRADE_TIME 60 //ASUS_BS battery health upgrade
-#define BAT_HEALTH_DATA_OFFSET  0x0
-#define BAT_HEALTH_DATA_MAGIC  0x86
-#define BAT_HEALTH_DATA_BACKUP_MAGIC 0x87
-#define ZS630KL_DESIGNED_CAPACITY 4750 //mAh //Design Capcaity *0.95 = 4750
-#define BAT_HEALTH_DATA_FILE_NAME   "/sdcard/bat_health"
-#define BAT_HEALTH_DATA_SD_FILE_NAME   "/sdcard/.bh"
-#define BAT_HEALTH_START_LEVEL 70
-#define BAT_HEALTH_END_LEVEL 100
-static bool g_bathealth_initialized = false;
-static bool g_bathealth_trigger = false;
-static bool g_last_bathealth_trigger = false;
-static bool g_health_debug_enable = true;
-static bool g_health_upgrade_enable = true;
-static int g_health_upgrade_index = 0;
-static int g_health_upgrade_start_level = BAT_HEALTH_START_LEVEL;
-static int g_health_upgrade_end_level = BAT_HEALTH_END_LEVEL;
-static int g_health_upgrade_upgrade_time = BATTERY_HEALTH_UPGRADE_TIME;
-static int g_bat_health_avg;
-
-static struct BAT_HEALTH_DATA g_bat_health_data = {
-    .magic = BAT_HEALTH_DATA_MAGIC,
-    .bat_current = 0,
-    .bat_current_avg = 0,
-    .accumulate_time = 0,
-    .accumulate_current = 0,
-   .bat_health = 0
-};
-static struct BAT_HEALTH_DATA_BACKUP g_bat_health_data_backup[BAT_HEALTH_NUMBER_MAX] = {
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0},
-	{"", 0}
-};
-struct delayed_work battery_health_work;
-struct delayed_work battery_metadata_work;
-
-struct fg_chip *g_fg = NULL;
-
-#define pr_fmt(fmt)	"FG: %s: " fmt, __func__
-#define BAT_TAG "[BAT][BMS]"
-#define ERROR_TAG "[ERR]"
-#define BAT_DBG(fmt, ...) printk(KERN_INFO BAT_TAG " %s: " fmt, __func__, ##__VA_ARGS__)
-#define BAT_DBG_E(fmt, ...)  printk(KERN_ERR BAT_TAG " %s: " fmt, __func__, ##__VA_ARGS__)
-#endif /* CONFIG_MACH_ASUS_SDM660 */
 
 /* Other definitions */
 #define SLOPE_LIMIT_COEFF_MAX		31
@@ -595,13 +510,6 @@ static DEVICE_ATTR_RW(sram_dump_period_ms);
 static int fg_restart_mp;
 static bool fg_sram_dump;
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-struct battery_name {
-	struct switch_dev battery_switch_dev;
-	char battery_name_type[100];
-} battery_name;
-#endif
-
 /* All getters HERE */
 
 #define CC_SOC_30BIT	GENMASK(29, 0)
@@ -859,26 +767,6 @@ static int fg_batt_missing_config(struct fg_dev *fg, bool enable)
 	return rc;
 }
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-ssize_t battery_print_name(struct switch_dev *sdev,char *buf)
-{
-	return sprintf(buf,"%s\n",battery_name.battery_name_type);
-}
-static int battery_switch_register(void)
-{
-	int ret;
-	battery_name.battery_switch_dev.name="battery";
-	battery_name.battery_switch_dev.print_name=battery_print_name;
-	ret = switch_dev_register(&battery_name.battery_switch_dev);
-	if(ret<0)
-		return ret;
-	battery_name.battery_switch_dev.state=0;
-	switch_set_state(&battery_name.battery_switch_dev,
-		battery_name.battery_switch_dev.state);
-	return 0;
-}
-#endif
-
 static int fg_get_batt_id(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -946,11 +834,6 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 		return rc;
 	}
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-	strcpy(battery_name.battery_name_type,chip->bp.batt_type_str);
-	battery_switch_register();
-#endif
-
 	rc = of_property_read_u32(profile_node, "qcom,max-voltage-uv",
 			&fg->bp.float_volt_uv);
 	if (rc < 0) {
@@ -967,9 +850,6 @@ static int fg_get_batt_profile(struct fg_dev *fg)
 
 	rc = of_property_read_u32(profile_node, "qcom,fg-cc-cv-threshold-mv",
 			&fg->bp.vbatt_full_mv);
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_get_batt_profile chip->bp.vbatt_full_mv=%d\n",chip->bp.vbatt_full_mv);
-#endif
 	if (rc < 0) {
 		pr_err("battery cc_cv threshold unavailable, rc:%d\n", rc);
 		fg->bp.vbatt_full_mv = -EINVAL;
@@ -1650,9 +1530,6 @@ static int fg_charge_full_update(struct fg_dev *fg)
 	recharge_soc = chip->dt.recharge_soc_thr;
 	recharge_soc = DIV_ROUND_CLOSEST(recharge_soc * FULL_SOC_RAW,
 				FULL_CAPACITY);
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_charge_full_update recharge_soc=%d\n",recharge_soc);
-#endif
 	rc = fg_get_sram_prop(fg, FG_SRAM_BATT_SOC, &bsoc);
 	if (rc < 0) {
 		pr_err("Error in getting BATT_SOC, rc=%d\n", rc);
@@ -1666,16 +1543,11 @@ static int fg_charge_full_update(struct fg_dev *fg)
 		pr_err("Error in getting msoc_raw, rc=%d\n", rc);
 		goto out;
 	}
-#ifdef CONFIG_MACH_ASUS_SDM660
 	msoc = DIV_ROUND_CLOSEST(msoc_raw * FULL_CAPACITY, FULL_SOC_RAW);
-#endif
 
 	fg_dbg(fg, FG_STATUS, "msoc: %d bsoc: %x health: %d status: %d full: %d\n",
 		msoc, bsoc, fg->health, fg->charge_status,
 		fg->charge_full);
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_charge_full_update msoc: %d bsoc: %x\n",msoc, bsoc);
-#endif
 	if (fg->charge_done && !fg->charge_full) {
 		if (msoc >= 99 && fg->health == POWER_SUPPLY_HEALTH_GOOD) {
 			fg_dbg(fg, FG_STATUS, "Setting charge_full to true\n");
@@ -1695,13 +1567,8 @@ static int fg_charge_full_update(struct fg_dev *fg)
 			fg_dbg(fg, FG_STATUS, "Terminated charging @ SOC%d\n",
 				msoc);
 		}
-#ifdef CONFIG_MACH_ASUS_SDM660
-	} else if ((msoc_raw <= recharge_soc || !chip->charge_done) && chip->charge_full) {
-		printk("enter fg_charge_full_update1\n");
-#else
 	} else if ((msoc_raw <= recharge_soc || !fg->charge_done)
 			&& fg->charge_full) {
-#endif
 		if (chip->dt.linearize_soc) {
 			fg->delta_soc = FULL_CAPACITY - msoc;
 
@@ -1744,14 +1611,8 @@ static int fg_charge_full_update(struct fg_dev *fg)
 			goto out;
 
 		fg->charge_full = false;
-#ifdef CONFIG_MACH_ASUS_SDM660
-		printk("enter fg_charge_full_update2\n");
-#endif
 		fg_dbg(fg, FG_STATUS, "msoc_raw = %d bsoc: %d recharge_soc: %d delta_soc: %d\n",
 			msoc_raw, bsoc >> 8, recharge_soc, fg->delta_soc);
-#ifdef CONFIG_MACH_ASUS_SDM660
-		printk("enter fg_charge_full_update msoc_raw = %d bsoc: %d recharge_soc: %d\n",msoc_raw, bsoc >> 8, recharge_soc);
-#endif
 	}
 
 out:
@@ -2776,9 +2637,6 @@ static void status_change_work(struct work_struct *work)
 	}
 
 	fg->charge_done = prop.intval;
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("status_change_work chip->charge_done=%d\n",chip->charge_done);
-#endif
 	fg_cycle_counter_update(fg);
 	fg_cap_learning_update(fg);
 
@@ -4955,285 +4813,6 @@ static int fg_parse_slope_limit_coefficients(struct fg_dev *fg)
 	return 0;
 }
 
-#ifdef CONFIG_MACH_ASUS_SDM660
-static int file_op(const char *filename, loff_t offset, char *buf, int length, int operation)
-{
-	int filep;
-	mm_segment_t old_fs;
-
-	old_fs = get_fs();
-	set_fs(KERNEL_DS);
-
-	if(FILE_OP_READ == operation)
-		filep= sys_open(filename, O_RDONLY | O_CREAT | O_SYNC, 0666);
-	else if(FILE_OP_WRITE == operation)
-		filep= sys_open(filename, O_RDWR | O_CREAT | O_SYNC, 0666);
-	else {
-		pr_err("Unknown partition op err!\n");
-		return -1;
-	}
-	if(filep < 0) {
-		pr_err("open %s err! error code:%d\n", filename, filep);
-		return -1;
-	}
-   else
-        fg_dbg(g_fg, FG_STATUS, "open %s success!\n", filename);
-
-	sys_lseek(filep, offset, SEEK_SET);
-	if(FILE_OP_READ == operation)
-		sys_read(filep, buf, length);
-	else if(FILE_OP_WRITE == operation) {
-		sys_write(filep, buf, length);
-		sys_fsync(filep);
-	}
-	set_fs(old_fs);
-	sys_close(filep);
-	return length;
-}
-
-static void battery_health_data_reset(void){
-	g_bat_health_data.bat_current = 0;
-	g_bat_health_data.bat_current_avg = 0;
-	g_bat_health_data.accumulate_time = 0;
-	g_bat_health_data.accumulate_current = 0;
-	g_bat_health_data.start_time = 0;
-	g_bat_health_data.end_time = 0;
-	g_bathealth_trigger = false;
-	g_last_bathealth_trigger = false;
-}
-
-extern int batt_health_csc_backup(void);
-static int resotre_bat_health(void)
-{
-	int i=0, rc = 0;
-
-	memset(&g_bat_health_data_backup,0,sizeof(struct BAT_HEALTH_DATA_BACKUP)*BAT_HEALTH_NUMBER_MAX);
-
-	/* Read cycle count data from emmc */
-	rc = file_op(BAT_HEALTH_DATA_FILE_NAME, BAT_HEALTH_DATA_OFFSET,
-		(char*)&g_bat_health_data_backup, sizeof(struct BAT_HEALTH_DATA_BACKUP)*BAT_HEALTH_NUMBER_MAX, FILE_OP_READ);
-	if(rc < 0) {
-		pr_err("Read bat health file failed!\n");
-		return -1;
-	}
-
-	BAT_DBG("index(%d)\n", g_bat_health_data_backup[0].health);
-	for(i=1; i<BAT_HEALTH_NUMBER_MAX;i++){
-		BAT_DBG("%s %d",g_bat_health_data_backup[i].date, g_bat_health_data_backup[i].health);
-	}
-
-	g_health_upgrade_index = g_bat_health_data_backup[0].health;
-	g_bathealth_initialized = true;
-
-	batt_health_csc_backup();
-	return 0;
-}
-
-static int backup_bat_health(void)
-{
-	int bat_health, rc;
-	struct timespec ts;
-	struct rtc_time tm;
-	int health_t;
-	int count=0, i=0;
-	unsigned long long bat_health_accumulate=0;
-
-	getnstimeofday(&ts);
-	rtc_time_to_tm(ts.tv_sec,&tm);
-
-	bat_health = g_bat_health_data.bat_health;
-
-	if(g_health_upgrade_index == BAT_HEALTH_NUMBER_MAX-1){
-		g_health_upgrade_index = 1;
-	}else{
-		g_health_upgrade_index++;
-	}
-
-	sprintf(g_bat_health_data_backup[g_health_upgrade_index].date, "%d-%02d-%02d %02d:%02d:%02d", tm.tm_year+1900,tm.tm_mon+1, tm.tm_mday,tm.tm_hour,tm.tm_min,tm.tm_sec);
-	g_bat_health_data_backup[g_health_upgrade_index].health = bat_health;
-	g_bat_health_data_backup[0].health = g_health_upgrade_index;
-
-	BAT_DBG("===== Health history ====\n");
-	for(i=1;i<BAT_HEALTH_NUMBER_MAX;i++){
-		if(g_bat_health_data_backup[i].health!=0){
-			count++;
-			bat_health_accumulate += g_bat_health_data_backup[i].health;
-			printk("%s %02d:%d\n",__FUNCTION__,i,g_bat_health_data_backup[i].health);
-		}
-	}
-	BAT_DBG(" ========================\n");
-	if(count==0){
-		BAT_DBG("battery health value is empty\n");
-		return -1;
-	}
-	health_t = bat_health_accumulate*10/count;
-	g_bat_health_avg = (int)(health_t + 5)/10;
-	g_bat_health_data_backup[g_health_upgrade_index].health = g_bat_health_avg;
-
-	rc = file_op(BAT_HEALTH_DATA_FILE_NAME, BAT_HEALTH_DATA_OFFSET,
-		(char *)&g_bat_health_data_backup, sizeof(struct BAT_HEALTH_DATA_BACKUP)*BAT_HEALTH_NUMBER_MAX, FILE_OP_WRITE);
-	if(rc<0){
-		pr_err("%s:Write file:%s err!\n", __FUNCTION__, BAT_HEALTH_DATA_FILE_NAME);
-	}
-
-	return rc;
-}
-
-int batt_health_csc_backup(void){
-	int rc=0, i=0;
-	struct BAT_HEALTH_DATA_BACKUP buf[BAT_HEALTH_NUMBER_MAX];
-	char buf2[BAT_HEALTH_NUMBER_MAX][30];
-
-	memset(&buf,0,sizeof(struct BAT_HEALTH_DATA_BACKUP)*BAT_HEALTH_NUMBER_MAX);
-	memset(&buf2,0,sizeof(char)*BAT_HEALTH_NUMBER_MAX*30);
-
-	rc = file_op(BAT_HEALTH_DATA_FILE_NAME, BAT_HEALTH_DATA_OFFSET,
-		(char*)&buf, sizeof(struct BAT_HEALTH_DATA)*BAT_HEALTH_NUMBER_MAX, FILE_OP_READ);
-	if(rc < 0) {
-		BAT_DBG_E("Read bat health file failed!\n");
-		return rc;
-	}
-
-	for(i=1;i<BAT_HEALTH_NUMBER_MAX;i++){
-		if(buf[i].health!=0){
-			sprintf(&buf2[i-1][0], "%s [%d]\n", buf[i].date, buf[i].health);
-		}
-	}
-
-	rc = file_op(BAT_HEALTH_DATA_SD_FILE_NAME, BAT_HEALTH_DATA_OFFSET,
-	(char *)&buf2, sizeof(char)*BAT_HEALTH_NUMBER_MAX*30, FILE_OP_WRITE);
-	if(rc < 0 )
-		BAT_DBG_E("Write bat health file failed!\n");
-
-
-	BAT_DBG("Done! \n");
-	return rc;
-}
-
-static void fg_get_online_status(struct fg_chip *chip){
-	int rc;
-	union power_supply_propval prop = {0, };
-	int online = 0;
-
-	if (usb_psy_initialized(chip)) {
-		rc = power_supply_get_property(chip->usb_psy,
-			POWER_SUPPLY_PROP_ONLINE, &prop);
-		if (rc < 0) {
-			pr_err("Couldn't read usb ONLINE prop rc=%d\n", rc);
-			return;
-		}
-
-		online = online || prop.intval;
-	}
-
-	if (pc_port_psy_initialized(chip)) {
-		rc = power_supply_get_property(chip->pc_port_psy,
-			POWER_SUPPLY_PROP_ONLINE, &prop);
-		if (rc < 0) {
-			pr_err("Couldn't read pc_port ONLINE prop rc=%d\n", rc);
-			return;
-		}
-
-		online = online || prop.intval;
-	}
-
-	if (dc_psy_initialized(chip)) {
-		rc = power_supply_get_property(chip->dc_psy,
-			POWER_SUPPLY_PROP_ONLINE, &prop);
-		if (rc < 0) {
-			pr_err("Couldn't read dc ONLINE prop rc=%d\n", rc);
-			return;
-		}
-
-		online = online || prop.intval;
-	}
-	chip->online_status = online;
-}
-
-extern unsigned long asus_qpnp_rtc_read_time(void);
-
-static void update_battery_health(struct fg_chip *chip){
-	int bat_capacity, bat_current, delta_p;
-	unsigned long T;
-	int health_t;
-
-	if(g_health_upgrade_enable != true){
-		return;
-	}
-
-	if(g_bathealth_initialized != true){
-		resotre_bat_health();
-		return;
-	}
-
-	fg_get_online_status(chip);
-	if(!chip->online_status){
-		if(g_last_bathealth_trigger == true){
-			battery_health_data_reset();
-		}
-		return;
-	}
-
-	fg_get_prop_capacity(chip, &bat_capacity);
-
-	if(bat_capacity == g_health_upgrade_start_level && g_bat_health_data.start_time == 0){
-		g_bathealth_trigger = true;
-		g_bat_health_data.start_time = asus_qpnp_rtc_read_time();
-	}
-	if(bat_capacity > g_health_upgrade_end_level){
-		g_bathealth_trigger = false;
-	}
-	if(g_last_bathealth_trigger == false && g_bathealth_trigger == false){
-		return;
-	}
-
-	if( g_bathealth_trigger ){
-		//if(g_screen_on == true){
-		//	return;
-		//}
-		fg_get_battery_current(chip, &bat_current);
-
-		g_bat_health_data.accumulate_time += g_health_upgrade_upgrade_time;
-		g_bat_health_data.bat_current = -bat_current;
-		g_bat_health_data.accumulate_current += g_bat_health_data.bat_current;
-		g_bat_health_data.bat_current_avg = g_bat_health_data.accumulate_current/g_bat_health_data.accumulate_time;
-
-		if(g_health_debug_enable)
-			BAT_DBG("accumulate_time(%llu), accumulate_current(%llu), bat_current(%d), bat_current_avg(%llu), bat_capacity(%d)", g_bat_health_data.accumulate_time, g_bat_health_data.accumulate_current/1000, g_bat_health_data.bat_current/1000, g_bat_health_data.bat_current_avg/1000, bat_capacity);
-		if(bat_capacity >= g_health_upgrade_end_level){
-			g_bat_health_data.end_time = asus_qpnp_rtc_read_time();
-			delta_p = g_health_upgrade_end_level - g_health_upgrade_start_level;
-			T = g_bat_health_data.end_time - g_bat_health_data.start_time;
-			health_t = (g_bat_health_data.bat_current_avg*T)*10/(unsigned long long)(ZS630KL_DESIGNED_CAPACITY*delta_p)/(unsigned long long)360;
-			g_bat_health_data.bat_health = (int)((health_t + 5)/10);
-
-			BAT_DBG("battery health = (%d,%d), T(%lu), bat_current_avg(%llu)", g_bat_health_data.bat_health, g_bat_health_avg, T, g_bat_health_data.bat_current_avg/1000);
-			backup_bat_health();
-			batt_health_csc_backup();
-			BAT_DBG("battery health = (%d,%d), T(%lu), bat_current_avg(%llu)", g_bat_health_data.bat_health, g_bat_health_avg, T, g_bat_health_data.bat_current_avg/1000);
-
-			battery_health_data_reset();
-		}else{
-				//do nothing
-		}
-	}else{
-		battery_health_data_reset();
-	}
-	g_last_bathealth_trigger = g_bathealth_trigger;
-}
-
-void battery_health_upgrade_data_polling(int time) {
-	cancel_delayed_work(&battery_health_work);
-	schedule_delayed_work(&battery_health_work, time * HZ);
-}
-
-void battery_health_worker(struct work_struct *work)
-{
-	update_battery_health(g_fg);
-	battery_health_upgrade_data_polling(g_health_upgrade_upgrade_time); // update each hour
-}
-#endif /* CONFIG_MACH_ASUS_SDM660 */
-
 static int fg_parse_ki_coefficients(struct fg_dev *fg)
 {
 	struct fg_gen3_chip *chip = container_of(fg, struct fg_gen3_chip, fg);
@@ -5551,10 +5130,6 @@ static int fg_parse_dt(struct fg_gen3_chip *chip)
 			pr_warn("Error reading Jeita thresholds, default values will be used rc:%d\n",
 				rc);
 	}
-
-#ifdef CONFIG_MACH_ASUS_SDM660
-	printk("enter fg_parse_dt :HW jeita cold:%d,cool:%d,warm:%d,hot:%d\n", chip->dt.jeita_thresholds[JEITA_COLD],chip->dt.jeita_thresholds[JEITA_COOL] ,chip->dt.jeita_thresholds[JEITA_WARM],chip->dt.jeita_thresholds[JEITA_HOT]); 
-#endif
 
 	if (of_property_count_elems_of_size(node,
 		"qcom,battery-thermal-coefficients",
@@ -5919,12 +5494,6 @@ static int fg_gen3_probe(struct platform_device *pdev)
 	INIT_WORK(&fg->esr_sw_work, fg_esr_sw_work);
 	INIT_DELAYED_WORK(&chip->ttf_work, ttf_work);
 	INIT_DELAYED_WORK(&fg->sram_dump_work, sram_dump_work);
-#ifdef CONFIG_MACH_ASUS_SDM660
-	g_fg = chip;
-	INIT_DELAYED_WORK(&battery_health_work, battery_health_worker); //battery_health_work
-	battery_health_data_reset();
-	schedule_delayed_work(&battery_health_work, 30 * HZ); //battery_health_work
-#endif	
 	INIT_WORK(&fg->esr_filter_work, esr_filter_work);
 	alarm_init(&fg->esr_filter_alarm, ALARM_BOOTTIME,
 			fg_esr_filter_alarm_cb);
@@ -6104,20 +5673,7 @@ static void fg_gen3_shutdown(struct platform_device *pdev)
 	struct fg_gen3_chip *chip = dev_get_drvdata(&pdev->dev);
 	struct fg_dev *fg = &chip->fg;
 	int rc, bsoc;
-
-#ifdef CONFIG_MACH_ASUS_SDM660
 	u8 mask;
-	u8 status;
-	rc = fg_read(chip, BATT_INFO_BATT_MISS_CFG(chip), &status, 1);
-	printk("fg_gen3_shutdown status0=%d\n",status);
-	rc = fg_masked_write(chip, BATT_INFO_BATT_MISS_CFG(chip),
-			BM_FROM_BATT_ID_BIT, 0);
-	if (rc < 0)
-		pr_err("Error in writing to %04x, rc=%d\n",
-			BATT_INFO_BATT_MISS_CFG(chip), rc);
-	rc = fg_read(chip, BATT_INFO_BATT_MISS_CFG(chip), &status, 1);
-	printk("fg_gen3_shutdown status1=%d\n",status);
-#endif
 
 	if (fg->charge_full) {
 		rc = fg_get_sram_prop(fg, FG_SRAM_BATT_SOC, &bsoc);
