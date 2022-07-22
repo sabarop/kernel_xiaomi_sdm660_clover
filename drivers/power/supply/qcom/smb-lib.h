@@ -73,6 +73,12 @@ enum print_reason {
 #define BOOST_BACK_STORM_COUNT	3
 #define WEAK_CHG_STORM_COUNT	8
 
+#ifdef CONFIG_MACH_ASUS_SDM660
+#define COUNTRY_BR 1
+#define COUNTRY_IN 1
+#define COUNTRY_OTHER 2
+#endif
+
 enum smb_mode {
 	PARALLEL_MASTER = 0,
 	PARALLEL_SLAVE,
@@ -325,6 +331,9 @@ struct smb_charger {
 //Huaqin added by tangqingyong at 20180206 for USB alert start
 	struct iio_channel			*gpio12_vadc_chan;
 //Huaqin added by tangqingyong at 20180206 for USB alert end
+/* Huaqin modify for ZQL1650-74 Countrycode Adapter by diganyun at 2018/03/26 start */
+	struct delayed_work read_countrycode_work;
+/* Huaqin modify for ZQL1650-74 Countrycode Adapter by diganyun at 2018/03/26 end */
 #endif
 
 	/* cached status */
@@ -453,8 +462,16 @@ irqreturn_t smblib_handle_dc_plugin(int irq, void *data);
 irqreturn_t smblib_handle_high_duty_cycle(int irq, void *data);
 irqreturn_t smblib_handle_switcher_power_ok(int irq, void *data);
 irqreturn_t smblib_handle_wdog_bark(int irq, void *data);
+
 int smblib_get_prop_input_suspend(struct smb_charger *chg,
 				union power_supply_propval *val);
+#ifdef CONFIG_MACH_ASUS_SDM660
+/* Huaqin add for ZQL1650-189 by diganyun at 2018/02/01 start */
+int smblib_get_prop_charging_enabled(struct smb_charger *chg,
+				union power_supply_propval *val);
+/* Huaqin add for ZQL1650-189 by diganyun at 2018/02/01 end */
+#endif
+
 int smblib_get_prop_batt_present(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_get_prop_batt_capacity(struct smb_charger *chg,
@@ -475,6 +492,14 @@ int smblib_get_prop_input_current_limited(struct smb_charger *chg,
 				union power_supply_propval *val);
 int smblib_set_prop_input_suspend(struct smb_charger *chg,
 				const union power_supply_propval *val);
+
+#ifdef CONFIG_MACH_ASUS_SDM660
+/* Huaqin add for ZQL1650-189 by diganyun at 2018/02/01 start */
+int smblib_set_prop_charging_enabled(struct smb_charger *chg,
+				const union power_supply_propval *val);
+/* Huaqin add for ZQL1650-189 by diganyun at 2018/02/01 end */				
+#endif
+
 int smblib_set_prop_batt_capacity(struct smb_charger *chg,
 				const union power_supply_propval *val);
 int smblib_set_prop_batt_status(struct smb_charger *chg,
