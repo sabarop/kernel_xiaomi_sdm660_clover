@@ -233,9 +233,9 @@ static struct wcd_mbhc_config mbhc_cfg = {
 	.swap_gnd_mic = NULL,
 	.hs_ext_micbias = true,
 	.key_code[0] = KEY_MEDIA,
-	.key_code[1] = KEY_VOLUMEUP,
-	.key_code[2] = KEY_VOLUMEDOWN,
-	.key_code[3] = 0,
+	.key_code[1] = KEY_VOICECOMMAND,
+	.key_code[2] = KEY_VOLUMEUP,
+	.key_code[3] = KEY_VOLUMEDOWN,
 	.key_code[4] = 0,
 	.key_code[5] = 0,
 	.key_code[6] = 0,
@@ -265,7 +265,7 @@ static struct dev_config mi2s_rx_cfg[] = {
 static struct dev_config mi2s_tx_cfg[] = {
 	[PRIM_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 	[SEC_MI2S]  = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
-	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 2},
+	[TERT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 	[QUAT_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 	[QUIN_MI2S] = {SAMPLING_RATE_48KHZ, SNDRV_PCM_FORMAT_S16_LE, 1},
 };
@@ -4682,15 +4682,9 @@ int msm_mi2s_snd_startup(struct snd_pcm_substream *substream)
 				goto clk_off;
 			}
 		}
-		if (index == TERT_MI2S) {
-			msm_cdc_pinctrl_select_active_state(pdata->tert_mi2s_gpio_p);
-			pr_info("%s: tert_mi2s_gpio_p\n", __func__);
-		}
-		if (pdata->mi2s_gpio_p[index]) {
+		if (pdata->mi2s_gpio_p[index])
 			msm_cdc_pinctrl_select_active_state(
 					pdata->mi2s_gpio_p[index]);
-			pr_info("%s: mi2s_gpio_p\n", __func__);
-		}
 	}
 	mutex_unlock(&mi2s_intf_conf[index].lock);
 	return 0;
@@ -4729,14 +4723,9 @@ void msm_mi2s_snd_shutdown(struct snd_pcm_substream *substream)
 
 	mutex_lock(&mi2s_intf_conf[index].lock);
 	if (--mi2s_intf_conf[index].ref_cnt == 0) {
-		if (index == TERT_MI2S) {
-			msm_cdc_pinctrl_select_sleep_state(pdata->tert_mi2s_gpio_p);
-			pr_info("%s: tert_mi2s_gpio_p\n", __func__);
-		} if (pdata->mi2s_gpio_p[index]) {
+		if (pdata->mi2s_gpio_p[index])
 			msm_cdc_pinctrl_select_sleep_state(
 					pdata->mi2s_gpio_p[index]);
-			pr_info("%s: mi2s_gpio_p\n", __func__);
-		  }
 
 		ret = msm_mi2s_set_sclk(substream, false);
 		if (ret < 0)
@@ -5446,8 +5435,6 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 					"qcom,cdc-dmic-gpios", 0);
 		pdata->ext_spk_gpio_p = of_parse_phandle(pdev->dev.of_node,
 					"qcom,cdc-ext-spk-gpios", 0);
-		pdata->tert_mi2s_gpio_p = of_parse_phandle(pdev->dev.of_node,
-				    "qcom,tert-mi2s-gpios", 0);
 	}
 
 	pdata->mi2s_gpio_p[PRIM_MI2S] = of_parse_phandle(pdev->dev.of_node,
@@ -5514,7 +5501,6 @@ static int msm_asoc_machine_probe(struct platform_device *pdev)
 			 */
 			ret = -EINVAL;
 		}
-		dev_err(&pdev->dev, "snd_soc_register_card failed:(%d)\n", ret);
 		goto err;
 	} else if (ret) {
 		dev_err(&pdev->dev, "snd_soc_register_card failed (%d)\n",
