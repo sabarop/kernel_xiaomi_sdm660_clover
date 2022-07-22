@@ -34,7 +34,7 @@
 #define CHG_DBG(...)  printk(KERN_ERR CHARGER_TAG __VA_ARGS__)
 #define CHG_DBG_E(...)  printk(KERN_ERR CHARGER_TAG ERROR_TAG __VA_ARGS__)
 #include <linux/switch.h>
-#include <linux/iio/consumer.h>
+#include <linux/qpnp/qpnp-adc.h>
 #endif
 
 #define SMB2_DEFAULT_WPWR_UW	8000000
@@ -2821,23 +2821,18 @@ static int init_proc_countrycode(void) {
 
 /* Huaqin modify for ZQL1650-70 Identify Adapter ID by fangaijun at 2018/02/8 start */
 int32_t get_ID_vadc_voltage(void){
-	struct iio_channel *vadc_chan;
+	struct qpnp_vadc_chip *vadc_dev;
+	struct qpnp_vadc_result adc_result;
 	int32_t adc;
-	int vadc, rc;
-	vadc_chan = iio_channel_get(smbchg_dev->dev, "pm-gpio3");
-	if (IS_ERR(vadc_chan)) {
-		pr_err("%s: Cannot get pm-gpio3 channel \n", __func__);
+	vadc_dev = qpnp_get_vadc(smbchg_dev->dev, "pm-gpio3");
+	if (IS_ERR(vadc_dev)) {
+		printk("%s: qpnp_get_vadc failed\n", __func__);
 		return -1;
 	}else{
-		//qpnp_vadc_read(vadc_dev, VADC_AMUX2_GPIO, &adc_result); //Read the GPIO2 VADC channel with 1:1 scaling
-		rc = iio_read_channel_processed(vadc_chan, &vadc);
-		if (rc < 0) {
-			pr_err("%s: Cannot read channel, rc = %d\n", __func__, rc);
-			return rc;
-		}
-		//adc = (int) adc_result.physical;
+		qpnp_vadc_read(vadc_dev, VADC_AMUX2_GPIO, &adc_result); //Read the GPIO2 VADC channel with 1:1 scaling
+		adc = (int) adc_result.physical;
 		adc = adc / 1000; /* uV to mV */
-		pr_info("%s: adc=%d", __func__, adc);
+		printk("%s: adc=%d adc_result.physical=%lld adc_result.chan=0x%x\n", __func__, adc,adc_result.physical,adc_result.chan);
 	}
 	return adc;
 }

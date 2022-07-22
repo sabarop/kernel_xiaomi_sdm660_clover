@@ -20,7 +20,7 @@
 #ifdef CONFIG_MACH_ASUS_SDM660
 //Huaqin added by tangqingyong at 20180206 for USB alert start
 #include <linux/switch.h>
-#include <linux/iio/consumer.h>
+#include <linux/qpnp/qpnp-adc.h>
 //Huaqin added by tangqingyong at 20180206 for USB alert end
 /* Huaqin add for ZQL1650-68 Realize jeita function by fangaijun at 2018/02/03 start */
 #include "fg-core.h"
@@ -3981,27 +3981,24 @@ static int jeita_status_regs_write(u8 chg_en, u8 FV_CFG, u8 FCC)
 void asus_update_usb_connector_state(struct smb_charger *chip)
 {
 	int64_t  phy_volta=0;
-	int usb_vadc_result, rc;
+	struct qpnp_vadc_result usb_vadc_result;
+	int rc;
 
-	chip->gpio12_vadc_chan=iio_channel_get(chip->dev,"chg-alert");
+	chip->gpio12_vadc_dev=qpnp_get_vadc(chip->dev,"chg-alert");
 
-	if(IS_ERR(chip->gpio12_vadc_chan)){
+	if(IS_ERR(chip->gpio12_vadc_dev)){
 		printk(" Error get chg_alert vadc rc = %d \n",rc);
-		rc = PTR_ERR(chip->gpio12_vadc_chan);
+		rc = PTR_ERR(chip->gpio12_vadc_dev);
 		if(rc != -EPROBE_DEFER)
 			printk(" Couldn't get chg_alert vadc rc = %d \n",rc);
 		return;
 	}
-	if(chip->gpio12_vadc_chan){
-		rc = iio_read_channel_processed(chip->gpio12_vadc_chan, &usb_vadc_result);
-		if(rc < 0) {
-			pr_err("%s: Cannot read channel chg-alert \n", __func__);
-			return;
-		}
-		phy_volta=usb_vadc_result;
+	if(chip->gpio12_vadc_dev){
+		qpnp_vadc_read(chip->gpio12_vadc_dev, VADC_AMUX8_GPIO, &usb_vadc_result);
+		phy_volta=usb_vadc_result.physical;
 		printk("qpnp_vadc_read :  phy_volta = %lld\n",phy_volta);
 	}else{
-		printk("NONE gpio12_vadc_chan \n");
+		printk("NONE gpio12_vadc_dev \n");
 		return;
 	}
 

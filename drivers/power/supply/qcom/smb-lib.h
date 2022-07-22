@@ -329,7 +329,7 @@ struct smb_charger {
 	struct delayed_work asus_batt_RTC_work;
 /* Huaqin add for ZQL1650-68 systme suspend 1 min run sw jeita by fangaijun at 2018/02/06 end */
 //Huaqin added by tangqingyong at 20180206 for USB alert start
-	struct iio_channel			*gpio12_vadc_chan;
+	struct qpnp_vadc_chip			*gpio12_vadc_dev;
 //Huaqin added by tangqingyong at 20180206 for USB alert end
 /* Huaqin modify for ZQL1650-74 Countrycode Adapter by diganyun at 2018/03/26 start */
 	struct delayed_work read_countrycode_work;
