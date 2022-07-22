@@ -140,6 +140,7 @@ int commonfp_hw_reset(int ms)
 	mdelay(ms);	
 #endif
 
+	printk(KERN_INFO"hw reset success,ret:%d\n",ret);
 	return ret;
 exit:
 	printk(KERN_ERR"fingerprint_hw_reset failed,ret:%d\n",ret);
