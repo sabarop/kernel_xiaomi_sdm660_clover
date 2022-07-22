@@ -38,9 +38,6 @@ snd-soc-tfa98xx-objs += src/tfa_container.o
 snd-soc-tfa98xx-objs += src/tfa_dsp.o
 snd-soc-tfa98xx-objs += src/tfa_init.o
 
-# Disable enum conversion warning
-subdir-ccflags-y := $(call cc-disable-warning, enum-conversion)
-
 ifdef TFA_DEBUG
 EXTRA_CFLAGS += -DTFA_DEBUG -DDEBUG
 snd-soc-tfa98xx-objs += src/tfa_debug.o
