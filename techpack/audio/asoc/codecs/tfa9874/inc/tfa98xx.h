@@ -33,10 +33,6 @@
 #define TFA98XX_FLAG_LP_MODES	        (1 << 7)
 #define TFA98XX_FLAG_TDM_DEVICE         (1 << 8)
 
-#ifdef TFA9874_NONDSP_STEREO
-#define TFA98XX_FLAG_CHIP_SELECTED      (1 << 16)
-#endif
-
 #define TFA98XX_NUM_RATES		9
 
 /* DSP init status */
@@ -74,7 +70,7 @@ struct tfa98xx {
 	struct regmap *regmap;
 	struct i2c_client *i2c;
 	struct regulator *vdd;
-	struct snd_soc_component *component;
+	struct snd_soc_codec *codec;
 	struct workqueue_struct *tfa98xx_wq;
 	struct delayed_work init_work;
 	struct delayed_work monitor_work;
@@ -113,10 +109,6 @@ struct tfa98xx {
 	int vstep;
 	int profile;
 	int prof_vsteps[TFACONT_MAXPROFS]; /* store vstep per profile (single device) */
-
-#ifdef TFA9874_NONDSP_STEREO
-	unsigned int nonDSP_stereo;
-#endif
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *dbg_dir;

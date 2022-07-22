@@ -165,8 +165,4 @@ config WSA_MACRO
 config SOUND_CONTROL
 	tristate "SOUND_CONTROL"
 
-config SND_SOC_TFA9874
-	tristate "NXP Semiconductors TFA9874 audio amplifier"
-	depends on I2C
-
 endmenu

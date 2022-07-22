@@ -13,5 +13,3 @@ obj-y += soc/
 obj-y += dsp/
 obj-y += ipc/
 obj-y += asoc/
-
-obj-$(CONFIG_SND_SOC_TFA9874)   += asoc/codecs/tfa9874/
