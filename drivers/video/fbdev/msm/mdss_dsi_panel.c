@@ -20,22 +20,11 @@
 #include "mdss_dsi.h"
 #include "mdss_dba_utils.h"
 #include "mdss_debug.h"
-#ifdef CONFIG_MACH_ASUS_SDM660
-#include "mdss_panel.h"
-#endif
 
 #define DT_CMD_HDR 6
 #define DEFAULT_MDP_TRANSFER_TIME 14000
 
 #define VSYNC_DELAY msecs_to_jiffies(17)
-
-#ifdef CONFIG_MACH_ASUS_SDM660
-extern char mdss_mdp_panel[MDSS_MAX_PANEL_LEN];
-#ifdef CONFIG_MACH_ASUS_X01BD
-extern bool shutdown_flag;
-#endif
-#endif
-
 #ifndef CONFIG_BACKLIGHT_QCOM_SPMI_WLED
 DEFINE_LED_TRIGGER(bl_led_trigger);
 #endif
@@ -189,10 +178,8 @@ static void mdss_dsi_panel_apply_settings(struct mdss_dsi_ctrl_pdata *ctrl,
 	mdss_dsi_cmdlist_put(ctrl, &cmdreq);
 }
 
-#ifndef CONFIG_MACH_ASUS_SDM660
-static
-#endif
-void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
+
+static void mdss_dsi_panel_cmds_send(struct mdss_dsi_ctrl_pdata *ctrl,
 			struct dsi_panel_cmds *pcmds, u32 flags)
 {
 	struct dcs_cmd_req cmdreq;
@@ -383,9 +370,6 @@ ret:
 	return rc;
 }
 
-#if defined(CONFIG_MACH_ASUS_X00TD) && defined(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_X00TD)
-extern long syna_gesture_mode;
-#endif
 int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 {
 	struct mdss_dsi_ctrl_pdata *ctrl_pdata = NULL;
@@ -511,36 +495,7 @@ int mdss_dsi_panel_reset(struct mdss_panel_data *pdata, int enable)
 			gpio_set_value((ctrl_pdata->disp_en_gpio), 0);
 			gpio_free(ctrl_pdata->disp_en_gpio);
 		}
-
-#if defined(CONFIG_MACH_ASUS_X00TD) && defined(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_X00TD)
-		if (strstr(mdss_mdp_panel,
-			"qcom,mdss_dsi_td4310_1080p_video_txd") &&
-			syna_gesture_mode == 0)
-#endif
-
-#ifdef CONFIG_MACH_ASUS_X01BD
-		if (shutdown_flag) {
-			gpio_set_value((ctrl_pdata->rst_gpio), 0);
-			rc = gpio_request_one(ctrl_pdata->tp_rst_gpio,
-						GPIOF_OUT_INIT_LOW,
-						"himax-tp-rst");
-			if (rc) {
-				pr_err("%s:Failed to request NVT-tp-rst GPIO\n",
-					__func__);
-				gpio_free(ctrl_pdata->tp_rst_gpio);
-				gpio_request_one(ctrl_pdata->tp_rst_gpio,
-							GPIOF_OUT_INIT_LOW,
-							"himax-tp-rst");
-			}
-		}
-#else
 		gpio_set_value((ctrl_pdata->rst_gpio), 0);
-#endif
-
-#if defined(CONFIG_MACH_ASUS_X00TD) && defined(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_X00TD)
-		else
-			gpio_set_value((ctrl_pdata->rst_gpio), 1);
-#endif
 		gpio_free(ctrl_pdata->rst_gpio);
 		if (gpio_is_valid(ctrl_pdata->lcd_mode_sel_gpio)) {
 			gpio_set_value(ctrl_pdata->lcd_mode_sel_gpio, 0);
@@ -3019,11 +2974,6 @@ static int mdss_panel_parse_dt(struct device_node *np,
 
 	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->off_cmds,
 		"qcom,mdss-dsi-off-command", "qcom,mdss-dsi-off-command-state");
-
-#ifdef CONFIG_MACH_ASUS_SDM660
-	mdss_dsi_parse_dcs_cmds(np, &ctrl_pdata->esd_recover_cmds,
-		"qcom,mdss-dsi-esd-recover-command", "qcom,mdss-dsi-esd-recover-command-state");
-#endif
 
 	rc = of_property_read_u32(np, "qcom,adjust-timer-wakeup-ms", &tmp);
 	pinfo->adjust_timer_delay_ms = (!rc ? tmp : 0);
