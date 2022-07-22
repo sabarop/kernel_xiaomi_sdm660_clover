@@ -2879,7 +2879,7 @@ int smblib_get_prop_die_health(struct smb_charger *chg,
 #define CDP_CURRENT_UA			1500000
 
 #ifdef CONFIG_MACH_ASUS_SDM660
-#define DCP_CURRENT_UA			3000000
+#define DCP_CURRENT_UA			2000000
 #else
 #define DCP_CURRENT_UA			1500000
 #endif
@@ -3835,7 +3835,7 @@ void jeita_rule(void)
 	case JEITA_STATE_RANGE_100_to_500:
 		charging_enable = EN_BAT_CHG_EN_COMMAND_TRUE;
 		FV_CFG_reg_value = SMBCHG_FLOAT_VOLTAGE_VALUE_4P350;
-		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_3000MA;
+		FCC_reg_value = SMBCHG_FAST_CHG_CURRENT_VALUE_2000MA;
 		rc = SW_recharge(smbchg_dev);
 		if (rc < 0) {
 			printk("%s: SW_recharge failed rc = %d\n", __func__, rc);
@@ -3966,7 +3966,7 @@ void asus_chg_flow_work(struct work_struct *work)
 			printk("%s: Couldn't read fast_CURRENT_LIMIT_CFG_REG\n", __func__);
 
 		// Write ICL for DCP
-		set_icl =ICL_3000mA;
+		set_icl =ICL_1000mA;
 		rc = smblib_masked_write(smbchg_dev, USBIN_CURRENT_LIMIT_CFG_REG,
 			USBIN_CURRENT_LIMIT_MASK, set_icl);
 		if (rc < 0)
@@ -4004,8 +4004,8 @@ void asus_adapter_adc_work(struct work_struct *work)
 		CHG_DBG_E("%s: Failed to set USBIN_OPTIONS_1_CFG_REG\n", __func__);
 /* Huaqin modify for ZQL1650 optimize adapter id input_suspend by fangaijun at 2018/03/22 end*/
 
-	// Set for all chargers
-	usb_max_current = ICL_3000mA;
+	// Set 2A for all chargers
+	usb_max_current = ICL_2000mA;
 	rc = smblib_set_usb_suspend(smbchg_dev, 0);
 	if (rc < 0)
 		printk("%s: Couldn't set 1340_USBIN_SUSPEND_BIT 0\n", __func__);
