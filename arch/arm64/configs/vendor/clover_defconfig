@@ -2596,6 +2596,7 @@ CONFIG_I2C_HELPER_AUTO=y
 # I2C Hardware Bus support
 #
 CONFIG_HQ_HARDWARE_INFO=y
+CONFIG_MSM_SMEM=y
 
 #
 # PC SMBus host controller drivers
